@@ -8,6 +8,7 @@ const { audit } = require('../services/audit');
 const { issueToken, findToken, consumeToken, linkFor, invalidToken } = require('../services/tokens');
 const { compose } = require('../services/mailer');
 const { summary } = require('../services/subscriptions');
+const { planFeaturesFor } = require('../middleware/plan');
 
 const brandingOut = b => b && ({
   displayName: b.display_name, logoUrl: b.logo_url,
@@ -53,7 +54,9 @@ async function buildMe(db, req) {
       membership: req.company && req.membership ? { roleId: req.membership.role_id, roleKey: req.membership.role_key, roleName: req.membership.role_name, isOwner: req.membership.is_owner } : null,
       permissions: [...req.permissions],
       companies: companies.map(c => ({ id: c.id, name: c.name, status: c.status, membershipStatus: c.membership_status })),
-      subscription
+      subscription,
+      // null = no subscription (no plan restrictions); otherwise the plan's feature keys.
+      planFeatures: req.company ? planFeaturesFor(req.subscription) : null
     };
   });
 }
@@ -181,8 +184,12 @@ module.exports = function authRoutes({ db, config, mailer }) {
   });
 
   // ---- Invitation / reset links ----
-  router.get('/token/:token', tokenLimiter, async (req, res) => {
-    const token = await findToken(db.knex, req.params.token);
+  // Tokens are accepted only in POST bodies (never in URL paths or query strings) so they cannot
+  // end up in access logs. Lookup does not consume the token; acceptance is atomic and one-time.
+  const tokenFrom = body => String(body?.token || '');
+
+  router.post('/token/inspect', tokenLimiter, async (req, res) => {
+    const token = await findToken(db.knex, tokenFrom(req.body));
     if (!token) throw invalidToken();
     const info = await db.withContext({ userId: token.user_id, companyId: token.company_id }, async trx => {
       const user = await trx('users').where({ id: token.user_id }).first('email', 'name', 'status');
@@ -190,11 +197,12 @@ module.exports = function authRoutes({ db, config, mailer }) {
       return { user, company };
     });
     if (!info.user || info.user.status === 'disabled') throw invalidToken();
+    res.set('Cache-Control', 'no-store');
     res.json({ ok: true, purpose: token.purpose, email: info.user.email, name: info.user.name, companyName: info.company?.name || null, expiresAt: token.expires_at });
   });
 
-  router.post('/token/:token/accept', tokenLimiter, async (req, res) => {
-    const token = await findToken(db.knex, req.params.token);
+  router.post('/token/accept', tokenLimiter, async (req, res) => {
+    const token = await findToken(db.knex, tokenFrom(req.body));
     if (!token) throw invalidToken();
     if (!validatePassword(req.body?.password)) throw badRequest('validation.password', `Password must be at least ${MIN_LENGTH} characters`, { field: 'password' });
     const name = token.purpose === 'invite' ? v.str(req.body?.name, { field: 'name', max: 120 }) : undefined;
@@ -212,7 +220,9 @@ module.exports = function authRoutes({ db, config, mailer }) {
         action: token.purpose === 'invite' ? 'auth.invitation_accepted' : 'auth.password_reset', companyId: token.company_id, entityType: 'user', entityId: user.id
       });
     });
+    // Every existing session of this account ends immediately (new password required everywhere).
     await db.knex('sessions').where({ user_id: token.user_id }).del();
+    res.set('Cache-Control', 'no-store');
     res.json({ ok: true });
   });
 

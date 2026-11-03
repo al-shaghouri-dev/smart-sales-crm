@@ -60,7 +60,8 @@
     },
     "platform": {
       "forbidden": "Only platform administrators can do this.",
-      "no_company": "Admin console sessions have no workspace."
+      "no_company": "Admin console sessions have no workspace.",
+      "admin_account": "Platform administrator accounts are recovered from the server command line."
     },
     "team": {
       "not_found": "Team member not found.",
@@ -125,6 +126,9 @@
       "needs_future_end": "An active subscription needs an end date in the future.",
       "read_only": "Your subscription is inactive — the workspace is read-only.",
       "blocked": "Your subscription is inactive — only billing is available."
+    },
+    "plan": {
+      "feature_unavailable": "Your current plan does not include this feature."
     }
   },
   "auth": {
@@ -331,7 +335,8 @@
     "accentColor": "Accent color",
     "useDefault": "Use platform default",
     "preview": "Preview",
-    "brandingHint": "Your branding only changes your own workspace."
+    "brandingHint": "Your branding only changes your own workspace.",
+    "brandingNotInPlan": "Custom branding is not included in your current plan. Your workspace uses the platform branding."
   },
   "account": {
     "title": "My account",
@@ -401,7 +406,9 @@
       "plan.deleted": "Deleted a plan",
       "registration.approved": "Approved a registration",
       "registration.rejected": "Rejected a registration",
-      "registration.info_requested": "Requested more information"
+      "registration.info_requested": "Requested more information",
+      "platform.member_invite_link": "Created a member invitation link (Super Admin)",
+      "platform.member_reset_link": "Created a member reset link (Super Admin)"
     }
   },
   "platform": {

@@ -30,7 +30,7 @@ export default function Dashboard() {
 
   const c = data?.company;
   const checklist = c ? [
-    { done: Boolean(c.branding.logoUrl || c.branding.primaryColor), label: t('dashboard.setupBranding'), to: '/settings?tab=branding' },
+    (!me.planFeatures || me.planFeatures.includes('branding.custom')) && { done: Boolean(c.branding.logoUrl || c.branding.primaryColor), label: t('dashboard.setupBranding'), to: '/settings?tab=branding' },
     { done: c.profile.timezone !== 'UTC', label: t('dashboard.setupRegion'), to: '/settings?tab=regional' },
     { done: (members?.length || 0) > 1, label: t('dashboard.setupTeam'), to: '/team' },
     can('roles.manage') && { done: Boolean(data.roles?.some(r => !r.isSystem)), label: t('dashboard.setupRoles'), to: '/roles' }

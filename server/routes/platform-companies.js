@@ -1,6 +1,6 @@
 const express = require('express');
 const v = require('../validate');
-const { badRequest, conflict, notFound } = require('../errors');
+const { badRequest, conflict, forbidden, notFound } = require('../errors');
 const { audit } = require('../services/audit');
 const { createCompany, upsertSubscription } = require('../services/companies');
 const { issueToken, linkFor } = require('../services/tokens');
@@ -124,16 +124,15 @@ module.exports = function companyAdminRoutes({ db, config, mailer }) {
   router.get('/:id', async (req, res) => {
     const data = await platform(req, async trx => {
       const c = await loadCompany(trx, req.params.id);
-      const [branding, members, sub, payments, activity, policy] = await Promise.all([
-        trx('company_branding').where({ company_id: c.id }).first(),
-        trx('company_memberships as m').join('users as u', 'u.id', 'm.user_id').join('roles as r', 'r.id', 'm.role_id')
-          .where('m.company_id', c.id).orderBy('m.created_at')
-          .select('m.id', 'm.status', 'u.name', 'u.email', 'u.status as user_status', 'u.last_login_at', 'r.key as role_key', 'r.name as role_name', 'r.is_owner'),
-        trx('subscriptions').where({ company_id: c.id }).first(),
-        trx('payments').where({ company_id: c.id }).orderBy('paid_at', 'desc').limit(100),
-        trx('audit_logs').where({ company_id: c.id }).orderBy('id', 'desc').limit(30).select('id', 'action', 'actor_email', 'created_at'),
-        trx('platform_settings').where({ id: 1 }).first('expired_access_policy')
-      ]);
+      // Sequential on purpose: a transaction is a single connection (pg deprecates overlapping queries).
+      const branding = await trx('company_branding').where({ company_id: c.id }).first();
+      const members = await trx('company_memberships as m').join('users as u', 'u.id', 'm.user_id').join('roles as r', 'r.id', 'm.role_id')
+        .where('m.company_id', c.id).orderBy('m.created_at')
+        .select('m.id', 'm.status', 'u.name', 'u.email', 'u.status as user_status', 'u.last_login_at', 'r.key as role_key', 'r.name as role_name', 'r.is_owner');
+      const sub = await trx('subscriptions').where({ company_id: c.id }).first();
+      const payments = await trx('payments').where({ company_id: c.id }).orderBy('paid_at', 'desc').limit(100);
+      const activity = await trx('audit_logs').where({ company_id: c.id }).orderBy('id', 'desc').limit(30).select('id', 'action', 'actor_email', 'created_at');
+      const policy = await trx('platform_settings').where({ id: 1 }).first('expired_access_policy');
       const plan = sub ? await trx('plans').where({ id: sub.plan_id }).first() : null;
       return { c, branding, members, sub, plan, payments, activity, policy: policy.expired_access_policy };
     });
@@ -209,7 +208,33 @@ module.exports = function companyAdminRoutes({ db, config, mailer }) {
       await audit(trx, req, { action: kind === 'invite' ? 'company.owner_invite_resent' : 'company.owner_reset_link', companyId: c.id, entityType: 'user', entityId: o.id });
       return { owner: o, token: t, purpose: kind, company: c };
     });
+    res.set('Cache-Control', 'no-store');
     res.json({ ok: true, purpose, ...(await deliver(owner.email, owner.locale || company.default_locale, purpose, token, company.name)) });
+  });
+
+  /**
+   * One-time access link for ANY member of this company (Super Admin only), including people
+   * who also belong to other companies — the case company admins are deliberately not allowed to handle.
+   * Invited accounts get a new invitation; active accounts get a 1-hour password-reset link.
+   * Not allowed: disabled accounts and platform administrators (they recover via the server CLI).
+   * Older unused links are revoked; using the link ends every session of that account.
+   */
+  router.post('/:id/members/:memberId/link', async (req, res) => {
+    const { member, token, purpose, company } = await platform(req, async trx => {
+      const c = await loadCompany(trx, req.params.id);
+      const m = await trx('company_memberships as m').join('users as u', 'u.id', 'm.user_id')
+        .where({ 'm.id': v.uuid(req.params.memberId, { field: 'memberId' }), 'm.company_id': c.id })
+        .first('m.id', 'u.id as user_id', 'u.email', 'u.status', 'u.locale', 'u.is_platform_admin');
+      if (!m) throw notFound('team.not_found', 'Team member not found');
+      if (m.is_platform_admin) throw forbidden('platform.admin_account', 'Platform administrator accounts are recovered with the server CLI');
+      if (m.status === 'disabled') throw badRequest('team.account_disabled', 'This account is disabled');
+      const kind = m.status === 'invited' ? 'invite' : 'password_reset';
+      const t = await issueToken(trx, { purpose: kind, userId: m.user_id, companyId: c.id, createdBy: req.user.id });
+      await audit(trx, req, { action: kind === 'invite' ? 'platform.member_invite_link' : 'platform.member_reset_link', companyId: c.id, entityType: 'membership', entityId: m.id, after: { email: m.email } });
+      return { member: m, token: t, purpose: kind, company: c };
+    });
+    res.set('Cache-Control', 'no-store');
+    res.json({ ok: true, purpose, ...(await deliver(member.email, member.locale || company.default_locale, purpose, token, company.name)) });
   });
 
   // ---- Subscription ----

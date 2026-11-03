@@ -3,6 +3,7 @@ const v = require('../validate');
 const { requireAuth, requireCompany, requirePermission } = require('../middleware/session');
 const { imageUpload } = require('../storage');
 const { audit } = require('../services/audit');
+const { requirePlanFeature } = require('../middleware/plan');
 
 const CURRENCIES = ['USD', 'EUR', 'GBP', 'SAR', 'AED', 'EGP', 'KWD', 'QAR', 'BHD', 'OMR', 'JOD', 'IQD', 'SYP', 'LBP', 'TRY', 'MAD', 'DZD', 'TND'];
 
@@ -32,11 +33,10 @@ module.exports = function companyRoutes({ db, storage }) {
 
   async function load(trx, companyId) {
     // Explicit company_id filters in addition to RLS (defence in depth).
-    const [company, settings, branding] = await Promise.all([
-      trx('companies').where({ id: companyId }).first(),
-      trx('company_settings').where({ company_id: companyId }).first(),
-      trx('company_branding').where({ company_id: companyId }).first()
-    ]);
+    // Sequential on purpose: a transaction is a single connection (pg deprecates overlapping queries).
+    const company = await trx('companies').where({ id: companyId }).first();
+    const settings = await trx('company_settings').where({ company_id: companyId }).first();
+    const branding = await trx('company_branding').where({ company_id: companyId }).first();
     return { company, settings, branding };
   }
 
@@ -83,7 +83,10 @@ module.exports = function companyRoutes({ db, storage }) {
     res.json(serialize(data.company, data.settings, data.branding));
   });
 
-  router.patch('/branding', requirePermission('company.branding.manage'), async (req, res) => {
+  // Custom branding is a plan feature: every endpoint that changes branding is gated on the server.
+  const brandingFeature = requirePlanFeature('branding.custom');
+
+  router.patch('/branding', requirePermission('company.branding.manage'), brandingFeature, async (req, res) => {
     const b = req.body || {};
     const patch = v.compact({
       display_name: v.str(b.displayName, { field: 'displayName', max: 120 }),
@@ -106,7 +109,7 @@ module.exports = function companyRoutes({ db, storage }) {
     res.json(serialize(data.company, data.settings, data.branding));
   });
 
-  router.post('/branding/logo', requirePermission('company.branding.manage'), imageUpload.single('file'), async (req, res) => {
+  router.post('/branding/logo', requirePermission('company.branding.manage'), brandingFeature, imageUpload.single('file'), async (req, res) => {
     const url = storage.saveImage(req.file, `companies/${req.company.id}`);
     await tenant(req, async trx => {
       await trx('company_branding').where({ company_id: req.company.id }).update({ logo_url: url, updated_at: trx.fn.now() });

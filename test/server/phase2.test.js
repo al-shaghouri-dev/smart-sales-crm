@@ -5,7 +5,7 @@ const h = require('./helpers');
 const { runSubscriptionMaintenance, addPeriod, monthlyValue } = require('../../server/services/subscriptions');
 
 const skip = !h.enabled && 'set TEST_DATABASE_URL and TEST_DATABASE_MIGRATION_URL to run database tests';
-const tokenFrom = link => link.split('/').pop();
+const tokenFrom = link => link.split('#')[1];
 const DAY = 86400000;
 
 describe('Phase 2: Super Admin, companies, subscriptions, onboarding', { skip }, () => {
@@ -110,7 +110,7 @@ describe('Phase 2: Super Admin, companies, subscriptions, onboarding', { skip },
       const plan = await makePlan(a);
       const res = await createCompanyViaApi(a, { subscription: { planId: plan.id, periods: 2 } });
       assert.equal(res.invitation.emailSent, false);
-      assert.match(res.invitation.link, /^https:\/\/app\.example\.test\/invite\/[A-Za-z0-9_-]{40,}$/);
+      assert.match(res.invitation.link, /^https:\/\/app\.example\.test\/invite#[A-Za-z0-9_-]{40,}$/);
 
       // Invited owner cannot log in before accepting.
       const blocked = await request(app).post('/api/auth/login').send({ email: 'dana@delta.test', password: 'anything-123' });
@@ -125,15 +125,15 @@ describe('Phase 2: Super Admin, companies, subscriptions, onboarding', { skip },
 
       // Accept the invitation → active owner of the company.
       const token = tokenFrom(res.invitation.link);
-      const info = await request(app).get(`/api/auth/token/${token}`);
+      const info = await request(app).post('/api/auth/token/inspect').send({ token: token });
       assert.equal(info.body.purpose, 'invite');
       assert.equal(info.body.companyName, 'Delta Trading');
       assert.equal(info.body.email, 'dana@delta.test');
-      assert.equal((await request(app).post(`/api/auth/token/${token}/accept`).send({ password: 'short' })).status, 400);
-      assert.equal((await request(app).post(`/api/auth/token/${token}/accept`).send({ password: 'Dana-Strong-Pass1' })).status, 200);
+      assert.equal((await request(app).post('/api/auth/token/accept').send({ token: token, password: 'short' })).status, 400);
+      assert.equal((await request(app).post('/api/auth/token/accept').send({ token: token, password: 'Dana-Strong-Pass1' })).status, 200);
       // One-time use
-      assert.equal((await request(app).post(`/api/auth/token/${token}/accept`).send({ password: 'Another-Pass-123' })).body.code, 'token.invalid');
-      assert.equal((await request(app).get(`/api/auth/token/${token}`)).status, 400);
+      assert.equal((await request(app).post('/api/auth/token/accept').send({ token: token, password: 'Another-Pass-123' })).body.code, 'token.invalid');
+      assert.equal((await request(app).post('/api/auth/token/inspect').send({ token: token })).status, 400);
       const owner = await h.login(app, 'dana@delta.test', 'Dana-Strong-Pass1');
       assert.equal(owner.me.membership.roleKey, 'owner');
       assert.equal(owner.me.user.locale, null, 'no language is pre-set: device detection applies until the user chooses');
@@ -151,19 +151,19 @@ describe('Phase 2: Super Admin, companies, subscriptions, onboarding', { skip },
       const sent = mailApp.locals.mailer.outbox;
       assert.equal(sent.length, 1);
       assert.equal(sent[0].to, 'm@mail.test');
-      assert.match(sent[0].text, /https:\/\/app\.example\.test\/invite\//);
+      assert.match(sent[0].text, /https:\/\/app\.example\.test\/invite#/);
     });
 
     test('expired, tampered or reused tokens are rejected; new link revokes the old one', async () => {
       const a = await admin();
       const { companyId, invitation } = await createCompanyViaApi(a);
-      assert.equal((await request(app).get('/api/auth/token/not-a-real-token-value-xxxxxxxxxx')).status, 400);
+      assert.equal((await request(app).post('/api/auth/token/inspect').send({ token: 'not-a-real-token-value-xxxxxxxxxx' })).status, 400);
       const second = await a.call('post', `/api/platform/companies/${companyId}/owner-link`, {});
       assert.equal(second.body.purpose, 'invite');
-      assert.equal((await request(app).get(`/api/auth/token/${tokenFrom(invitation.link)}`)).status, 400, 'old link revoked');
+      assert.equal((await request(app).post('/api/auth/token/inspect').send({ token: tokenFrom(invitation.link) })).status, 400, 'old link revoked');
       // Expire the new token
       await h.getOwner().raw("UPDATE auth_tokens SET expires_at = now() - interval '1 minute' WHERE used_at IS NULL");
-      assert.equal((await request(app).post(`/api/auth/token/${tokenFrom(second.body.link)}/accept`).send({ password: 'Valid-Pass-123' })).body.code, 'token.invalid');
+      assert.equal((await request(app).post('/api/auth/token/accept').send({ token: tokenFrom(second.body.link), password: 'Valid-Pass-123' })).body.code, 'token.invalid');
     });
 
     test('tokens are stored hashed', async () => {
@@ -387,7 +387,7 @@ describe('Phase 2: Super Admin, companies, subscriptions, onboarding', { skip },
       assert.equal(detail.company.defaultLocale, 'ar');
       assert.equal(detail.subscription.plan.id, plan.id);
 
-      await request(app).post(`/api/auth/token/${tokenFrom(ap.body.invitation.link)}/accept`).send({ password: 'Lina-Pass-1234' });
+      await request(app).post('/api/auth/token/accept').send({ token: tokenFrom(ap.body.invitation.link), password: 'Lina-Pass-1234' });
       const lina = await h.login(app, 'lina@cedar.test', 'Lina-Pass-1234');
       assert.equal(lina.me.company.name, 'Cedar Shop');
     });
@@ -427,15 +427,15 @@ describe('Phase 2: Super Admin, companies, subscriptions, onboarding', { skip },
       const first = res.body.link;
       const resend = await o.agent.post(`/api/team/${res.body.member.id}/link`).set('X-CSRF-Token', o.csrf);
       assert.equal(resend.body.purpose, 'invite');
-      assert.equal((await request(app).get(`/api/auth/token/${tokenFrom(first)}`)).status, 400, 'old invitation revoked');
-      await request(app).post(`/api/auth/token/${tokenFrom(resend.body.link)}/accept`).send({ password: 'Sami-Pass-1234', name: 'Sami Haddad' });
+      assert.equal((await request(app).post('/api/auth/token/inspect').send({ token: tokenFrom(first) })).status, 400, 'old invitation revoked');
+      await request(app).post('/api/auth/token/accept').send({ token: tokenFrom(resend.body.link), password: 'Sami-Pass-1234', name: 'Sami Haddad' });
       const sami = await h.login(app, 'sami@alpha.test', 'Sami-Pass-1234');
       assert.equal(sami.me.user.locale, null);
       assert.equal(sami.me.user.name, 'Sami Haddad');
 
       const reset = await o.agent.post(`/api/team/${res.body.member.id}/link`).set('X-CSRF-Token', o.csrf);
       assert.equal(reset.body.purpose, 'password_reset');
-      await request(app).post(`/api/auth/token/${tokenFrom(reset.body.link)}/accept`).send({ password: 'Sami-New-Pass-99' });
+      await request(app).post('/api/auth/token/accept').send({ token: tokenFrom(reset.body.link), password: 'Sami-New-Pass-99' });
       assert.equal((await sami.agent.get('/api/auth/me')).status, 401, 'reset signs out existing sessions');
       await h.login(app, 'sami@alpha.test', 'Sami-New-Pass-99');
 
@@ -456,9 +456,9 @@ describe('Phase 2: Super Admin, companies, subscriptions, onboarding', { skip },
       const outbox = mailApp.locals.mailer.outbox;
       assert.equal(outbox.length, 1);
       const link = outbox[0].text.match(/https:\/\/\S+/)[0];
-      assert.match(link, /\/reset-password\//);
-      assert.equal((await request(mailApp).get(`/api/auth/token/${tokenFrom(link)}`)).body.purpose, 'password_reset');
-      await request(mailApp).post(`/api/auth/token/${tokenFrom(link)}/accept`).send({ password: 'Recovered-Pass-1' });
+      assert.match(link, /\/reset-password#/);
+      assert.equal((await request(mailApp).post('/api/auth/token/inspect').send({ token: tokenFrom(link) })).body.purpose, 'password_reset');
+      await request(mailApp).post('/api/auth/token/accept').send({ token: tokenFrom(link), password: 'Recovered-Pass-1' });
       await h.login(mailApp, 'a@alpha.test', 'Recovered-Pass-1');
       const limited = h.makeApp({ recoveryRateLimit: 1 });
       await request(limited).post('/api/auth/forgot-password').send({ email: 'x@x.test' });

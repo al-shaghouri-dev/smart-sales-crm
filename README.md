@@ -39,13 +39,19 @@ Production: `npm run build && npm start` (Express serves `dist/web`). Set `NODE_
 ## Areas
 - `/admin/login` → **Super Admin console** (separate session; companies, registrations, plans, subscriptions, payments, platform settings)
 - `/login` → **company workspace**; `/register` → self-service registration (approval required)
-- `/invite/:token`, `/reset-password/:token` → one-time links (invitations expire after 7 days, resets after 1 hour)
+- `/invite#<token>`, `/reset-password#<token>` → one-time links (invitations expire after 7 days, resets after 1 hour).
+  The token sits in the URL fragment, which browsers never send to servers; the page submits it in a POST body
+  and removes it from the address bar.
+- Super Admins can create a one-time reset/invitation link for any member from the company Members tab.
+  Platform-admin accounts are recovered with `npm run platform:admin -- --email … --name … --reset-password`.
 
 ## Subscriptions
 Plans (monthly / yearly / custom days) are managed in the console. Payments are confirmed manually and can extend the
 subscription. An hourly job (`npm run jobs:subscriptions` to run it once) expires overdue subscriptions and notifies
 owners 7 and 1 days before expiry. Expired or suspended subscriptions switch the workspace to read-only or billing-only
 (platform setting). **Company data is never deleted by subscription changes.**
+Seat limits are enforced with a per-company database lock (safe under simultaneous requests), and plan
+features such as `branding.custom` are checked on the server for every request.
 
 ## Security model
 - **Two database roles.** Migrations run as the schema owner; the app connects as `APP_DB_ROLE`

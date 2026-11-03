@@ -105,9 +105,12 @@ function SalesTab({ data, canEdit, onSaved }) {
   );
 }
 
-function BrandingTab({ data, canEdit, onSaved }) {
+function BrandingTab({ data, canEdit: canEditRole, onSaved }) {
   const { t } = useTranslation();
-  const { platform, reloadMe } = useApp();
+  const { platform, reloadMe, me } = useApp();
+  // Mirrors the server-side plan gate (branding.custom); the API refuses the change regardless.
+  const inPlan = !me.planFeatures || me.planFeatures.includes('branding.custom');
+  const canEdit = canEditRole && inPlan;
   const b = data.branding;
   const [form, setForm] = useState({ displayName: b.displayName || '', logoUrl: b.logoUrl || '', primaryColor: b.primaryColor || '', secondaryColor: b.secondaryColor || '', accentColor: b.accentColor || '' });
   const { busy, error, run } = useSave(async r => { await reloadMe(); onSaved(r); });
@@ -118,11 +121,14 @@ function BrandingTab({ data, canEdit, onSaved }) {
     <div className="grid-2 wide-first">
       <Card actions={canEdit && <Button variant="primary" loading={busy} onClick={() => run(() => api.patch('/api/company/branding', payload()))}>{t('common.save')}</Button>}>
         <p className="muted">{t('company.brandingHint')}</p>
+        {!inPlan && <div className="alert alert-info">{t('company.brandingNotInPlan')}</div>}
         <fieldset className="form-grid" disabled={!canEdit}>
           <Field label={t('company.displayName')} hint={t('company.displayNameHint')} full>{id => <input id={id} maxLength={120} value={form.displayName} placeholder={data.profile.name} onChange={e => set('displayName')(e.target.value)} />}</Field>
           <div className="field full">
             <span className="label">{t('company.logo')}</span>
-            <ImageUpload url={form.logoUrl} square onUpload={async file => { const r = await api.upload('/api/company/branding/logo', file); set('logoUrl')(r.url); await reloadMe(); }} onRemove={() => set('logoUrl')('')} />
+            {canEdit
+              ? <ImageUpload url={form.logoUrl} square onUpload={async file => { const r = await api.upload('/api/company/branding/logo', file); set('logoUrl')(r.url); await reloadMe(); }} onRemove={() => set('logoUrl')('')} />
+              : <div className="image-preview square">{form.logoUrl ? <img src={form.logoUrl} alt="" /> : <span className="muted">—</span>}</div>}
           </div>
           {['primaryColor', 'secondaryColor', 'accentColor'].map(k => (
             <Field key={k} label={t(`company.${k}`)} error={fieldError(t, error, k)}>

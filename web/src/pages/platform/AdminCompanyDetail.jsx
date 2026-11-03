@@ -212,13 +212,21 @@ export default function AdminCompanyDetail() {
         <Card>
           <div className="table-wrap">
             <table className="table">
-              <thead><tr><th>{t('team.name')}</th><th>{t('team.role')}</th><th>{t('common.status')}</th><th>{t('team.lastLogin')}</th></tr></thead>
+              <thead><tr><th>{t('team.name')}</th><th>{t('team.role')}</th><th>{t('common.status')}</th><th>{t('team.lastLogin')}</th><th className="actions-col"><span className="sr-only">{t('common.actions')}</span></th></tr></thead>
               <tbody>{members.map(m => (
                 <tr key={m.id}>
                   <td><strong>{m.name}</strong>{m.invitationPending && <Badge tone="warning">{t('team.invitationPending')}</Badge>}<div className="muted small" dir="ltr">{m.email}</div></td>
                   <td>{roleLabel(t, m)}</td>
                   <td><Badge tone={m.status === 'active' ? 'success' : 'neutral'}>{t(`common.${m.status}`)}</Badge></td>
                   <td className="small">{m.lastLoginAt ? fmtDate(m.lastLoginAt, locale, { dateStyle: 'medium', timeStyle: 'short' }) : t('common.never')}</td>
+                  <td className="actions-col">
+                    {m.accountStatus !== 'disabled' && (
+                      <Button size="sm" variant="ghost" loading={busy === `m-${m.id}`} onClick={async () => {
+                        const r = await run(`m-${m.id}`, () => api.post(`/api/platform/companies/${company.id}/members/${m.id}/link`));
+                        if (r) setModal({ type: 'link', result: r });
+                      }}><Link2 size={14} aria-hidden />{m.invitationPending ? t('team.resendInvite') : t('team.sendResetLink')}</Button>
+                    )}
+                  </td>
                 </tr>
               ))}</tbody>
             </table>

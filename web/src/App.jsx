@@ -34,8 +34,11 @@ const NotFound = () => {
 /** Pages reachable without a session (also while signed in, for links opened from email). */
 function publicRoutes() {
   return [
-    <Route key="inv" path="/invite/:token" element={<AcceptToken />} />,
-    <Route key="rst" path="/reset-password/:token" element={<AcceptToken />} />
+    <Route key="inv" path="/invite" element={<AcceptToken />} />,
+    <Route key="rst" path="/reset-password" element={<AcceptToken />} />,
+    // Older links had the token in the path; still accepted, and immediately moved out of the URL.
+    <Route key="inv-legacy" path="/invite/:token" element={<AcceptToken />} />,
+    <Route key="rst-legacy" path="/reset-password/:token" element={<AcceptToken />} />
   ];
 }
 

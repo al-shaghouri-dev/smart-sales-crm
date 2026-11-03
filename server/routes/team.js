@@ -7,6 +7,7 @@ const { badRequest, conflict, forbidden, notFound } = require('../errors');
 const { audit } = require('../services/audit');
 const { issueToken, linkFor } = require('../services/tokens');
 const { compose } = require('../services/mailer');
+const { reserveSeat } = require('../services/seats');
 
 const MEMBER_FIELDS = ['m.id', 'm.user_id', 'm.status', 'm.job_title', 'm.created_at', 'm.role_id',
   'u.name', 'u.email', 'u.phone', 'u.last_login_at', 'u.status as user_status', 'r.key as role_key', 'r.name as role_name', 'r.is_owner'];
@@ -50,14 +51,6 @@ module.exports = function teamRoutes({ db, config, mailer }) {
     if (shared > 0 || platform) throw forbidden('team.shared_account', 'This account is shared with another workspace and can only be changed by its owner');
   }
 
-  /** Plan seat limit: active + invited members count against max_employees (null = unlimited). */
-  async function assertSeatAvailable(trx, req) {
-    const max = req.subscription?.plan?.max_employees;
-    if (!max) return;
-    const r = await trx('company_memberships').where({ company_id: req.company.id, status: 'active' }).count('* as n').first();
-    if (Number(r.n) >= max) throw conflict('team.plan_limit', `Your plan allows up to ${max} team members`);
-  }
-
   /** Email the one-time link if email is configured; otherwise return it once to the admin to share. */
   async function deliverLink(req, member, purpose, token) {
     const link = linkFor(config, purpose, token);
@@ -89,7 +82,8 @@ module.exports = function teamRoutes({ db, config, mailer }) {
 
     const member = await tenant(req, async trx => {
       const role = await getRole(trx, req, b.roleId);
-      await assertSeatAvailable(trx, req);
+      // Active (including invited) members use a seat; locked per company — see services/seats.js.
+      if (status === 'active') await reserveSeat(trx, req.company.id);
       const existing = (await trx.raw('SELECT app_user_id_by_email(?) AS id', [email])).rows[0].id;
       // Linking existing accounts across workspaces needs an invitation flow (Phase 2).
       if (existing) throw conflict('team.email_taken', 'An account with this email already exists');
@@ -125,7 +119,7 @@ module.exports = function teamRoutes({ db, config, mailer }) {
         membershipPatch.role_id = role.id;
       }
       if (isSelf && membershipPatch.status === 'inactive') throw forbidden('team.self_deactivate', 'You cannot deactivate yourself');
-      if (membershipPatch.status === 'active' && before.status !== 'active') await assertSeatAvailable(trx, req);
+      if (membershipPatch.status === 'active' && before.status !== 'active') await reserveSeat(trx, req.company.id);
       if (before.is_owner && (membershipPatch.role_id || membershipPatch.status) && !actorIsOwner(req)) throw forbidden('team.owner_only', 'Only owners can manage an owner');
 
       const userPatch = v.compact({
@@ -177,6 +171,7 @@ module.exports = function teamRoutes({ db, config, mailer }) {
       await audit(trx, req, { action: kind === 'invite' ? 'team.invite_resent' : 'team.reset_link_created', companyId: req.company.id, entityType: 'membership', entityId: m.id });
       return { member: m, token: t, purpose: kind };
     });
+    res.set('Cache-Control', 'no-store');
     res.json({ ok: true, purpose, ...(await deliverLink(req, member, purpose, token)) });
   });
 

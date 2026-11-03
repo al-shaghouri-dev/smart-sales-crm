@@ -13,6 +13,15 @@ const { AppError } = require('./errors');
 const WEB_DIST = path.join(__dirname, '..', 'dist', 'web');
 
 /**
+ * URLs written to logs never include query strings and replace token-like segments
+ * (long base64url / hex strings) with "[redacted]". Request bodies are never logged.
+ */
+function redactUrl(url) {
+  return String(url || '').split('?')[0].split('#')[0]
+    .split('/').map(seg => (/^[A-Za-z0-9_-]{24,}$/.test(seg) && !/^[0-9a-f-]{36}$/i.test(seg) ? '[redacted]' : seg)).join('/');
+}
+
+/**
  * Builds the Express app. `options.db` lets tests inject a database; otherwise one is created from config.
  */
 function createApp(config, options = {}) {
@@ -48,6 +57,8 @@ function createApp(config, options = {}) {
   });
 
   app.use(express.json({ limit: '1mb' }));
+  // API responses (some carry one-time links) must never be stored by browsers or proxies.
+  app.use('/api', (_req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
   app.use('/api', rateLimit({ windowMs: 60 * 1000, limit: options.apiRateLimit || 600, standardHeaders: 'draft-7', legacyHeaders: false }));
   app.use('/uploads', express.static(config.uploadsDir, { dotfiles: 'deny', index: false, fallthrough: false }));
   app.use(loadSession(db));
@@ -85,7 +96,7 @@ function createApp(config, options = {}) {
       return res.status(403).json({ ok: false, code: 'auth.forbidden', error: 'Forbidden' });
     }
     if (error.code === '23505') return res.status(409).json({ ok: false, code: 'common.conflict', error: 'Already exists' });
-    console.error('[error]', req.method, req.originalUrl, error);
+    console.error('[error]', req.method, redactUrl(req.originalUrl), error?.stack || error?.message);
     res.status(500).json({ ok: false, code: 'common.server_error', error: 'Internal server error' });
   });
 
@@ -94,4 +105,4 @@ function createApp(config, options = {}) {
   return app;
 }
 
-module.exports = { createApp };
+module.exports = { createApp, redactUrl };

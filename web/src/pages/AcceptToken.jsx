@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { CheckCircle2, LinkIcon } from 'lucide-react';
@@ -8,14 +8,56 @@ import { errorMessage } from '../lib/i18n';
 import { Button, Field, Spinner, fieldError, useLoader } from '../components/ui';
 import { AuthShell } from './Login';
 
-/** Accept an invitation or complete a password reset from a one-time link. */
+const STORE_KEY = 'sscrm.pendingToken';
+const TOKEN_RE = /^[A-Za-z0-9_-]{20,100}$/;
+
+/**
+ * Read the one-time token from the URL fragment (#token) — fragments are never sent to servers —
+ * then remove it from the address bar and history right away. It is kept only in this tab's
+ * sessionStorage so a reload still works, and is cleared after use. Older path-style links
+ * (/invite/<token>) are accepted and cleaned the same way.
+ */
+function takeToken(pathToken, base) {
+  const fromHash = window.location.hash.slice(1);
+  const candidate = TOKEN_RE.test(fromHash) ? fromHash : TOKEN_RE.test(pathToken || '') ? pathToken : null;
+  try {
+    if (candidate) sessionStorage.setItem(STORE_KEY, JSON.stringify({ base, token: candidate }));
+    if (candidate || window.location.hash) window.history.replaceState(window.history.state, '', base);
+    const saved = JSON.parse(sessionStorage.getItem(STORE_KEY) || 'null');
+    return saved && saved.base === base ? saved.token : candidate;
+  } catch {
+    return candidate;
+  }
+}
+const forgetToken = () => { try { sessionStorage.removeItem(STORE_KEY); } catch { /* ignore */ } };
+
+/**
+ * Opening another link while this page is already open only changes the #fragment (same-document
+ * navigation, no reload). Re-mount the form whenever a new token arrives in the fragment.
+ */
 export default function AcceptToken() {
+  const [generation, setGeneration] = useState(0);
+  useEffect(() => {
+    const onHash = () => { if (TOKEN_RE.test(window.location.hash.slice(1))) setGeneration(g => g + 1); };
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
+  }, []);
+  return <AcceptTokenForm key={generation} />;
+}
+
+/** Accept an invitation or complete a password reset from a one-time link. */
+function AcceptTokenForm() {
   const { t } = useTranslation();
-  const { token } = useParams();
+  const { token: pathToken } = useParams();
   const { pathname } = useLocation();
   const { me, signOut } = useApp();
-  const invite = pathname.startsWith('/invite/');
-  const { data, loading, error } = useLoader(() => api.get(`/api/auth/token/${encodeURIComponent(token)}`), [token]);
+  const invite = pathname.startsWith('/invite');
+  const base = invite ? '/invite' : '/reset-password';
+  const [token] = useState(() => takeToken(pathToken, base));
+  const { data, loading, error } = useLoader(
+    () => (token ? api.post('/api/auth/token/inspect', { token }) : Promise.reject({ code: 'token.invalid' })),
+    [token]
+  );
   const [form, setForm] = useState({ name: '', password: '', confirm: '' });
   const [state, setState] = useState({ busy: false, error: null, done: false });
 
@@ -24,15 +66,18 @@ export default function AcceptToken() {
     if (form.password !== form.confirm) return setState(s => ({ ...s, error: { code: 'validation.password_mismatch', details: { field: 'confirm' } } }));
     setState({ busy: true, error: null, done: false });
     try {
-      await api.post(`/api/auth/token/${encodeURIComponent(token)}/accept`, { password: form.password, ...(invite && form.name ? { name: form.name } : {}) });
+      await api.post('/api/auth/token/accept', { token, password: form.password, ...(invite && form.name ? { name: form.name } : {}) });
+      forgetToken();
       if (me) await signOut();
       setState({ busy: false, error: null, done: true });
-    } catch (err) { setState({ busy: false, error: err, done: false }); }
+    } catch (err) {
+      if (err.code === 'token.invalid') forgetToken();
+      setState({ busy: false, error: err, done: false });
+    }
   }
 
-  const heading = invite ? t('accept.inviteHeading') : t('accept.resetHeading');
   return (
-    <AuthShell heading={heading} subheading={invite ? t('accept.inviteSubheading') : t('accept.resetSubheading')}>
+    <AuthShell heading={invite ? t('accept.inviteHeading') : t('accept.resetHeading')} subheading={invite ? t('accept.inviteSubheading') : t('accept.resetSubheading')}>
       {loading ? <Spinner /> : error ? (
         <div className="stack">
           <div className="alert alert-error" role="alert"><LinkIcon size={16} aria-hidden />{errorMessage(t, error)}</div>

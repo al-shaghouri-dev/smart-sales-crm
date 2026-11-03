@@ -8,8 +8,13 @@ const { badRequest } = require('../errors');
 const TTL_HOURS = { invite: 7 * 24, password_reset: 1 };
 const sha256 = v => crypto.createHash('sha256').update(String(v)).digest('hex');
 
+/**
+ * The token travels in the URL *fragment* (after #). Browsers never send fragments to any server,
+ * so the token cannot appear in web-server / proxy / CDN access logs or Referer headers.
+ * The frontend reads it from location.hash and submits it in a POST body.
+ */
 function linkFor(config, purpose, token) {
-  return `${config.appUrl}/${purpose === 'invite' ? 'invite' : 'reset-password'}/${token}`;
+  return `${config.appUrl}/${purpose === 'invite' ? 'invite' : 'reset-password'}#${token}`;
 }
 
 /** Issue a token (revoking older unused tokens for the same user + purpose). */
