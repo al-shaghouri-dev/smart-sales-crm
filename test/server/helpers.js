@@ -33,7 +33,9 @@ async function setupDatabase() {
 }
 
 async function resetDatabase() {
-  await owner.raw('TRUNCATE notifications, auth_tokens, payments, subscriptions, registration_requests, plans, audit_logs, sessions, company_memberships, role_permissions, roles, company_settings, company_branding, companies, users RESTART IDENTITY CASCADE');
+  await owner.raw('TRUNCATE webhook_events, socket_io_attachments, notifications, auth_tokens, payments, subscriptions, registration_requests, plans, audit_logs, sessions, company_memberships, role_permissions, roles, company_settings, company_branding, companies, users RESTART IDENTITY CASCADE');
+  // pg-boss tables are owned by the application role (it installs them at start-up).
+  await db.knex.raw(`DO $$ BEGIN IF to_regclass('pgboss.job') IS NOT NULL THEN DELETE FROM pgboss.job; END IF; END $$`);
   await owner.transaction(async trx => {
     await trx.raw("SELECT set_config('app.platform_admin', 'on', true)");
     await trx('platform_settings').where({ id: 1 }).update({ app_name: 'Smart Sales CRM', logo_url: null, primary_color: '#4f46e5', expired_access_policy: 'read_only', registration_enabled: true });
@@ -92,7 +94,32 @@ async function login(app, email, password = PASSWORD, endpoint = '/api/auth/logi
 
 const platformLogin = (app, email, password = PASSWORD) => login(app, email, password, '/api/auth/platform-login');
 
+/** Full config for runtime tests (jobs, realtime, webhooks, fake provider). */
+function runtimeConfig(overrides = {}) {
+  const uploadsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sscrm-up-'));
+  const base = {
+    env: 'test', isProd: false, port: 0, uploadsDir, sessionTtlHours: 1, platformSessionTtlHours: 1,
+    appUrl: 'http://localhost', loginRateLimit: 1000, recoveryRateLimit: 1000, tokenRateLimit: 1000, registrationRateLimit: 1000,
+    databaseUrl: APP_URL, databaseDirectUrl: APP_URL, mail: { driver: 'none' },
+    processRole: 'all', jobsEnabled: true, shutdownTimeoutMs: 15000,
+    jobs: { schema: 'pgboss', pollingIntervalSeconds: 0.5, poolMax: 3 },
+    realtime: { enabled: true, adapter: 'none', allowedOrigins: ['http://localhost'], revalidateSeconds: 3600 },
+    webhooks: { bodyLimit: '64kb', maxAttempts: 3, retryDelaySeconds: 0, retentionDays: 30, rateLimitPerMinute: 100000 },
+    channelProviders: ['fake'], fakeProviderSecret: 'fake-test-secret'
+  };
+  const merged = { ...base, ...overrides };
+  for (const k of ['jobs', 'realtime', 'webhooks']) merged[k] = { ...base[k], ...(overrides[k] || {}) };
+  return merged;
+}
+
+/** Log in and return the raw session cookie (for Socket.IO clients). */
+async function sessionCookie(app, email, password = PASSWORD, endpoint = '/api/auth/login') {
+  const res = await request(app).post(endpoint).send({ email, password });
+  if (res.status !== 200) throw new Error(`login failed for ${email}: ${res.status}`);
+  return res.headers['set-cookie'].map(c => c.split(';')[0]).join('; ');
+}
+
 module.exports = {
-  enabled, PASSWORD, platformLogin, setupDatabase, resetDatabase, teardown, makeApp, createCompanyFixture, addMember, createPlatformAdmin, login,
+  enabled, PASSWORD, platformLogin, runtimeConfig, sessionCookie, setupDatabase, resetDatabase, teardown, makeApp, createCompanyFixture, addMember, createPlatformAdmin, login,
   getDb: () => db, getOwner: () => owner
 };

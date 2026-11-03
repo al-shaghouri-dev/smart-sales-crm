@@ -8,6 +8,9 @@ const { createDb } = require('./db');
 const { createStorage } = require('./storage');
 const { loadSession, enforceSubscription } = require('./middleware/session');
 const { createMailer } = require('./services/mailer');
+const { createDisabledJobs } = require('./jobs');
+const { createProviderRegistry } = require('./channels/registry');
+const { createWebhookRouter } = require('./webhooks/ingest');
 const { AppError } = require('./errors');
 
 const WEB_DIST = path.join(__dirname, '..', 'dist', 'web');
@@ -29,7 +32,10 @@ function createApp(config, options = {}) {
   const storage = createStorage(config.uploadsDir);
   const mailer = options.mailer || createMailer(config.mail);
   const subscriptionGuard = enforceSubscription(db);
-  const deps = { db, config, storage, mailer, onPolicyChange: subscriptionGuard.invalidate };
+  // Jobs / providers are injected by the runtime (server/runtime.js); tests may omit them.
+  const jobs = options.jobs || createDisabledJobs();
+  const providers = options.providers || createProviderRegistry({ ...config, channelProviders: [] });
+  const deps = { db, config, storage, mailer, jobs, providers, onPolicyChange: subscriptionGuard.invalidate };
 
   const app = express();
   app.disable('x-powered-by');
@@ -51,10 +57,20 @@ function createApp(config, options = {}) {
     crossOriginEmbedderPolicy: false
   }));
 
+  // Liveness: the process is up. Readiness: it can serve traffic (database reachable, jobs started
+  // when enabled, not shutting down). Only booleans are exposed — no versions or internals.
   app.get('/api/health', (_req, res) => res.json({ ok: true, service: 'smart-sales-crm' }));
   app.get('/api/ready', async (_req, res) => {
-    try { await db.knex.raw('select 1'); res.json({ ok: true }); } catch { res.status(503).json({ ok: false }); }
+    const state = app.locals.runtimeState || 'running';
+    let database = false;
+    try { await db.knex.raw('select 1'); database = true; } catch { database = false; }
+    const jobsReady = options.jobs ? await options.jobs.health() : true;
+    const ok = database && jobsReady && state === 'running';
+    res.status(ok ? 200 : 503).json({ ok, checks: { database, jobs: jobsReady, accepting: state === 'running' } });
   });
+
+  // Provider webhooks: raw bodies, mounted BEFORE the JSON parser (signatures need exact bytes).
+  app.use('/webhooks', createWebhookRouter({ db, config, providers, jobs }));
 
   app.use(express.json({ limit: '1mb' }));
   // API responses (some carry one-time links) must never be stored by browsers or proxies.

@@ -129,6 +129,10 @@
     },
     "plan": {
       "feature_unavailable": "Your current plan does not include this feature."
+    },
+    "webhooks": {
+      "not_found": "Webhook event not found.",
+      "not_failed": "Only failed events can be retried."
     }
   },
   "auth": {
@@ -408,7 +412,8 @@
       "registration.rejected": "Rejected a registration",
       "registration.info_requested": "Requested more information",
       "platform.member_invite_link": "Created a member invitation link (Super Admin)",
-      "platform.member_reset_link": "Created a member reset link (Super Admin)"
+      "platform.member_reset_link": "Created a member reset link (Super Admin)",
+      "webhook.retried": "Retried a failed webhook event"
     }
   },
   "platform": {

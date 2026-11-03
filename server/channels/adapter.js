@@ -1,0 +1,61 @@
+/**
+ * Channel provider adapter contract.
+ *
+ * Every messaging provider (Telegram, Messenger, Instagram, WhatsApp, and the fake test provider)
+ * implements this interface. Provider-specific rules (signature formats, payload shapes, API calls)
+ * live ONLY inside adapters; the shared pipeline never inspects provider payloads itself.
+ *
+ * Required members
+ *   id            string   stable provider key used in URLs and the database ("telegram", …)
+ *   displayName   string
+ *   capabilities  object   e.g. { inbound: true, outbound: true, media: false, templates: false }
+ *   verifyRequest({ rawBody: Buffer, headers, query, endpointKey }) → boolean
+ *        Authenticate a webhook delivery. Must use the raw bytes. Never throw on bad input.
+ *   parseEvents({ rawBody, headers, endpointKey }) → Array<ParsedEvent>
+ *        Split one delivery into events. Throw ProviderError('webhook.bad_payload') on garbage.
+ *        ParsedEvent = { eventKey: string (unique per provider, used for de-duplication),
+ *                        type: string, externalAccountId?: string, payload: object }
+ *   processEvent(event, ctx) → Promise<{ status: 'processed'|'ignored', companyId?, channelId?, reason? }>
+ *        Handle one stored event (idempotently). Throw ProviderError for failures; set
+ *        retryable=false for errors that will never succeed.
+ *   sendMessage(request, ctx) → Promise<{ externalMessageId: string }>
+ *
+ * Optional members
+ *   handleVerification({ query, endpointKey }) → { status, body }   GET handshake (e.g. Meta hub.challenge)
+ *   ackResponse() → { status, body }                                  custom 2xx acknowledgement
+ *   connect / disconnect / refreshCredentials / healthCheck          (Phase 3.3+)
+ */
+
+class ProviderError extends Error {
+  /**
+   * @param {string} code       stable machine code, e.g. "provider.rate_limited"
+   * @param {object} [opts]     { retryable = true, message, status }
+   */
+  constructor(code, { retryable = true, message, status } = {}) {
+    super(message || code);
+    this.name = 'ProviderError';
+    this.code = code;
+    this.retryable = retryable;
+    if (status) this.status = status;
+  }
+}
+
+const REQUIRED_FUNCTIONS = ['verifyRequest', 'parseEvents', 'processEvent', 'sendMessage'];
+const ID = /^[a-z][a-z0-9_]{1,30}$/;
+
+/** Validate and freeze an adapter definition. Throws at start-up on a broken adapter. */
+function defineAdapter(def) {
+  if (!def || typeof def !== 'object') throw new TypeError('Adapter definition must be an object');
+  if (!ID.test(String(def.id))) throw new TypeError(`Adapter id "${def.id}" is invalid`);
+  if (!def.displayName) throw new TypeError(`Adapter ${def.id} needs a displayName`);
+  if (!def.capabilities || typeof def.capabilities !== 'object') throw new TypeError(`Adapter ${def.id} needs capabilities`);
+  for (const fn of REQUIRED_FUNCTIONS) {
+    if (typeof def[fn] !== 'function') throw new TypeError(`Adapter ${def.id} must implement ${fn}()`);
+  }
+  for (const fn of ['handleVerification', 'ackResponse', 'connect', 'disconnect', 'refreshCredentials', 'healthCheck']) {
+    if (def[fn] !== undefined && typeof def[fn] !== 'function') throw new TypeError(`Adapter ${def.id}.${fn} must be a function`);
+  }
+  return Object.freeze({ ...def });
+}
+
+module.exports = { defineAdapter, ProviderError };

@@ -40,49 +40,68 @@ async function createSession(db, config, { userId, companyId, req, kind = 'compa
   return { token, csrf };
 }
 
+/**
+ * Resolve a raw session token into the full security context (user, company, membership,
+ * permissions, subscription). Shared by the HTTP middleware and the Socket.IO handshake so both
+ * apply exactly the same rules. Returns null when the session is missing, expired or unusable.
+ */
+async function resolveSession(db, token) {
+  if (!token) return null;
+  const session = await db.knex('sessions').where({ id: sha256(token) }).where('expires_at', '>', new Date()).first();
+  if (!session) return null;
+
+  const loaded = await db.withContext({ userId: session.user_id, companyId: session.company_id }, async trx => {
+    const user = await trx('users').where({ id: session.user_id })
+      .first('id', 'email', 'name', 'phone', 'status', 'is_platform_admin', 'locale', 'theme');
+    if (!user || user.status !== 'active') return null;
+    if (session.kind === 'platform' && !user.is_platform_admin) return null;
+    let company = null, membership = null, permissions = [], subscription = null;
+    if (session.kind === 'company' && session.company_id) {
+      company = await trx('companies').where({ id: session.company_id }).first();
+      membership = await trx('company_memberships as m').join('roles as r', 'r.id', 'm.role_id')
+        .where({ 'm.company_id': session.company_id, 'm.user_id': user.id })
+        .first('m.id', 'm.status', 'm.role_id', 'r.key as role_key', 'r.name as role_name', 'r.is_owner');
+      if (membership && membership.status === 'active') {
+        permissions = await trx('role_permissions').where({ role_id: membership.role_id, company_id: session.company_id }).pluck('permission_key');
+      }
+      subscription = await trx('subscriptions').where({ company_id: session.company_id }).first();
+      if (subscription) subscription.plan = await trx('plans').where({ id: subscription.plan_id }).first();
+    }
+    return { user, company, membership, permissions, subscription };
+  });
+  if (!loaded) return null;
+
+  // Company access requires an active company AND an active membership.
+  const usable = Boolean(loaded.company && loaded.company.status === 'active' && loaded.membership && loaded.membership.status === 'active');
+  return {
+    session,
+    user: loaded.user,
+    companyRecord: loaded.company,
+    membership: loaded.membership,
+    company: usable ? loaded.company : null,
+    permissions: new Set(usable ? loaded.permissions : []),
+    subscription: usable ? loaded.subscription : null,
+    isPlatformSession: session.kind === 'platform'
+  };
+}
+
 /** Load (but do not require) the session, user, active company and permissions. */
 function loadSession(db) {
   return async (req, _res, next) => {
     try {
-      const token = parseCookies(req.headers.cookie)[COOKIE];
-      if (!token) return next();
-      const session = await db.knex('sessions').where({ id: sha256(token) }).where('expires_at', '>', new Date()).first();
-      if (!session) return next();
+      const auth = await resolveSession(db, parseCookies(req.headers.cookie)[COOKIE]);
+      if (!auth) return next();
+      req.session = auth.session;
+      req.user = auth.user;
+      req.companyRecord = auth.companyRecord;
+      req.membership = auth.membership;
+      req.company = auth.company;
+      req.permissions = auth.permissions;
+      req.subscription = auth.subscription;
+      req.isPlatformSession = auth.isPlatformSession;
 
-      const loaded = await db.withContext({ userId: session.user_id, companyId: session.company_id }, async trx => {
-        const user = await trx('users').where({ id: session.user_id })
-          .first('id', 'email', 'name', 'phone', 'status', 'is_platform_admin', 'locale', 'theme');
-        if (!user || user.status !== 'active') return null;
-        if (session.kind === 'platform' && !user.is_platform_admin) return null;
-        let company = null, membership = null, permissions = [], subscription = null;
-        if (session.kind === 'company' && session.company_id) {
-          company = await trx('companies').where({ id: session.company_id }).first();
-          membership = await trx('company_memberships as m').join('roles as r', 'r.id', 'm.role_id')
-            .where({ 'm.company_id': session.company_id, 'm.user_id': user.id })
-            .first('m.id', 'm.status', 'm.role_id', 'r.key as role_key', 'r.name as role_name', 'r.is_owner');
-          if (membership && membership.status === 'active') {
-            permissions = await trx('role_permissions').where({ role_id: membership.role_id, company_id: session.company_id }).pluck('permission_key');
-          }
-          subscription = await trx('subscriptions').where({ company_id: session.company_id }).first();
-          if (subscription) subscription.plan = await trx('plans').where({ id: subscription.plan_id }).first();
-        }
-        return { user, company, membership, permissions, subscription };
-      });
-      if (!loaded) return next();
-
-      req.session = session;
-      req.user = loaded.user;
-      req.companyRecord = loaded.company;
-      req.membership = loaded.membership;
-      // Company access requires an active company AND an active membership.
-      const usable = loaded.company && loaded.company.status === 'active' && loaded.membership && loaded.membership.status === 'active';
-      req.company = usable ? loaded.company : null;
-      req.permissions = new Set(usable ? loaded.permissions : []);
-      req.subscription = usable ? loaded.subscription : null;
-      req.isPlatformSession = session.kind === 'platform';
-
-      if (Date.now() - new Date(session.last_seen_at).getTime() > TOUCH_INTERVAL_MS) {
-        db.knex('sessions').where({ id: session.id }).update({ last_seen_at: new Date() }).catch(() => {});
+      if (Date.now() - new Date(auth.session.last_seen_at).getTime() > TOUCH_INTERVAL_MS) {
+        db.knex('sessions').where({ id: auth.session.id }).update({ last_seen_at: new Date() }).catch(() => {});
       }
       next();
     } catch (error) {
@@ -154,4 +173,4 @@ function enforceSubscription(db) {
   return middleware;
 }
 
-module.exports = { COOKIE, sha256, cookieOptions, createSession, loadSession, requireAuth, requireCompany, requirePermission, requirePlatformAdmin, enforceSubscription };
+module.exports = { COOKIE, sha256, parseCookies, resolveSession, cookieOptions, createSession, loadSession, requireAuth, requireCompany, requirePermission, requirePlatformAdmin, enforceSubscription };

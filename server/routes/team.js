@@ -140,6 +140,7 @@ module.exports = function teamRoutes({ db, config, mailer }) {
     });
     if (member.status !== 'active') {
       await db.knex('sessions').where({ user_id: member.userId ?? member.user_id, company_id: req.company.id }).del();
+      req.app.locals.realtime?.disconnectUser(member.userId ?? member.user_id);
     }
     res.json({ member: out(member) });
   });
@@ -156,6 +157,7 @@ module.exports = function teamRoutes({ db, config, mailer }) {
       return m;
     });
     await db.knex('sessions').where({ user_id: member.user_id }).del();
+    req.app.locals.realtime?.disconnectUser(member.user_id);
     res.json({ ok: true });
   });
 
@@ -190,6 +192,7 @@ module.exports = function teamRoutes({ db, config, mailer }) {
       return m;
     });
     await db.knex('sessions').where({ user_id: member.user_id, company_id: req.company.id }).del();
+    req.app.locals.realtime?.disconnectUser(member.user_id);
     res.json({ ok: true });
   });
 

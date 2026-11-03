@@ -18,12 +18,16 @@
     "test:web": "node --test --test-concurrency=1 --test-reporter=spec \"test/web/*.test.mjs\"",
     "legacy": "node legacy/server.js",
     "legacy:create-admin": "node legacy/scripts/create-admin.js",
-    "jobs:subscriptions": "node scripts/run-subscription-maintenance.js"
+    "jobs:subscriptions": "node scripts/run-subscription-maintenance.js",
+    "start:web": "node server/index.js --role=web",
+    "start:worker": "node server/index.js --role=worker",
+    "secrets:rotate": "node scripts/rotate-encryption-keys.js"
   },
   "engines": {
     "node": ">=20"
   },
   "dependencies": {
+    "@socket.io/postgres-adapter": "^0.5.0",
     "dotenv": "^16.4.7",
     "exceljs": "^4.4.0",
     "express": "^5.3.0",
@@ -35,10 +39,13 @@
     "multer": "^2.5.0",
     "nodemailer": "^10.3.1",
     "pg": "^8.23.1",
+    "pg-boss": "^12.38.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-i18next": "^17.1.11",
-    "react-router-dom": "^7.18.5"
+    "react-router-dom": "^7.18.5",
+    "socket.io": "^4.8.4",
+    "socket.io-client": "^4.8.4"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^6.2.1",

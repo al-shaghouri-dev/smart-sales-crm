@@ -139,6 +139,7 @@ module.exports = function authRoutes({ db, config, mailer }) {
 
   router.post('/logout', requireAuth, async (req, res) => {
     await db.knex('sessions').where({ id: req.session.id }).del();
+    req.app.locals.realtime?.disconnectSession(req.session.id);
     res.clearCookie(COOKIE, { ...cookieOptions(config), maxAge: undefined });
     res.json({ ok: true });
   });
@@ -222,6 +223,7 @@ module.exports = function authRoutes({ db, config, mailer }) {
     });
     // Every existing session of this account ends immediately (new password required everywhere).
     await db.knex('sessions').where({ user_id: token.user_id }).del();
+    req.app.locals.realtime?.disconnectUser(token.user_id);
     res.set('Cache-Control', 'no-store');
     res.json({ ok: true });
   });

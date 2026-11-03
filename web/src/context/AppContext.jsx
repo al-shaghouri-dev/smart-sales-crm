@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { api, setCsrfToken, setUnauthorizedHandler } from '../lib/api';
 import { detectLocale, readSavedLocale, saveLocale, browserLanguages } from '../lib/locale';
 import { applyBranding, effectiveTheme, readSavedTheme, resolveThemePreference, saveTheme } from '../lib/theme';
+import { connectRealtime, disconnectRealtime, onRealtime } from '../lib/realtime';
 
 const AppContext = createContext(null);
 export const useApp = () => useContext(AppContext);
@@ -46,6 +47,16 @@ export function AppProvider({ children }) {
   }, [i18n, loadMe]);
 
   useEffect(() => { boot(); }, [boot]);
+
+  // Real-time connection follows the session: open while signed in, closed otherwise.
+  // When the server reports a permission change, refresh the session data.
+  const signedIn = Boolean(me);
+  useEffect(() => {
+    if (!signedIn) { disconnectRealtime(); return undefined; }
+    connectRealtime();
+    const off = onRealtime('session:changed', () => { loadMe().catch(() => {}); });
+    return () => { off(); };
+  }, [signedIn, loadMe]);
   useEffect(() => { setUnauthorizedHandler(() => { setMe(null); setCsrfToken(null); }); }, []);
 
   // Theme: apply and follow OS changes when set to "system".

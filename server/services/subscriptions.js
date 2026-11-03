@@ -105,21 +105,7 @@ async function runSubscriptionMaintenance(db, { mailer, appName, now = new Date(
   return result;
 }
 
-/** Run maintenance every hour (first run shortly after start-up). Safe with several app instances. */
-function scheduleSubscriptionMaintenance(db, opts, intervalMs = 3600 * 1000) {
-  const tick = async () => {
-    try {
-      const platform = await db.withContext({}, trx => trx('platform_settings').where({ id: 1 }).first('app_name'));
-      const r = await runSubscriptionMaintenance(db, { ...opts, appName: platform?.app_name });
-      if (r.expired || r.notified) console.log('[jobs] subscription maintenance', r);
-    } catch (error) {
-      console.error('[jobs] subscription maintenance failed:', error.message);
-    }
-  };
-  const first = setTimeout(tick, 10_000);
-  const timer = setInterval(tick, intervalMs);
-  first.unref?.(); timer.unref?.();
-  return () => { clearTimeout(first); clearInterval(timer); };
-}
+// Scheduling lives in server/jobs (pg-boss schedule "subscription.maintenance"), so there is a single
+// scheduler across all instances. The transaction-scoped advisory lock above remains as a safety net.
 
-module.exports = { addPeriod, monthlyValue, accessFor, summary, runSubscriptionMaintenance, scheduleSubscriptionMaintenance, INACTIVE };
+module.exports = { addPeriod, monthlyValue, accessFor, summary, runSubscriptionMaintenance, INACTIVE };

@@ -17,12 +17,14 @@ function createDb(databaseUrl) {
    * ctx.companyId     – tenant whose rows are visible (RLS)
    * ctx.userId        – acting user (lets users see their own identity rows)
    * ctx.platformAdmin – only set by /api/platform routes; widens RLS to all tenants
+   * ctx.system        – background processing of platform-level tables (e.g. webhook_events);
+   *                     grants NO access to tenant data, which still requires companyId
    */
   async function withContext(ctx, fn) {
     return knex.transaction(async trx => {
       await trx.raw(
-        `SELECT set_config('app.company_id', ?, true), set_config('app.user_id', ?, true), set_config('app.platform_admin', ?, true)`,
-        [ctx.companyId || '', ctx.userId || '', ctx.platformAdmin ? 'on' : 'off']
+        `SELECT set_config('app.company_id', ?, true), set_config('app.user_id', ?, true), set_config('app.platform_admin', ?, true), set_config('app.system', ?, true)`,
+        [ctx.companyId || '', ctx.userId || '', ctx.platformAdmin ? 'on' : 'off', ctx.system ? 'on' : 'off']
       );
       return fn(trx);
     });

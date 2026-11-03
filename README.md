@@ -5,6 +5,9 @@ Multi-tenant sales & customer-messaging CRM platform (Arabic / English).
 **Status:** Phase 2 — Super Admin console, company management, plans & subscriptions (manual payments),
 self-registration with approval, secure invitations & password reset — on top of the Phase 1 foundation
 (multi-tenant PostgreSQL with Row Level Security, sessions, roles & permissions, branding, Arabic/English).
+**Phase 3.1 (infrastructure):** background jobs (pg-boss), Socket.IO real-time, credential encryption v2,
+a shared webhook pipeline and the channel-provider adapter interface with a fake provider for tests.
+No real messaging provider (Telegram, Messenger, Instagram, WhatsApp) is integrated yet.
 Inbox, customers, orders and messaging channels are being rebuilt in later phases; until then the
 original prototype is kept runnable under `legacy/` (`npm run legacy`).
 
@@ -20,6 +23,11 @@ test/          API/RLS integration tests (real PostgreSQL) + frontend unit tests
 legacy/        Original single-workspace prototype (Phase 0 hardened)
 ```
 
+## Running it
+
+See **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)** for local setup (Windows/macOS/Linux), migrations,
+process roles, health checks, graceful shutdown, key rotation and free-tier limitations.
+
 ## Local setup
 
 ```bash
@@ -29,7 +37,7 @@ npm install
 npm run migrate                 # runs as DATABASE_MIGRATION_URL (schema owner)
 npm run platform:admin -- --email you@example.com --name "Your Name"     # prompts for password
 npm run company:create -- --name "Acme" --owner-email owner@acme.com --owner-name "Owner Name"   # optional; the admin console can do this
-npm run dev                     # API on :3000
+npm run dev                     # API + jobs + Socket.IO on :3000
 npm run dev:web                 # UI on :5173 (proxies /api)
 ```
 

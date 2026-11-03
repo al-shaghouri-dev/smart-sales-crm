@@ -129,6 +129,10 @@
     },
     "plan": {
       "feature_unavailable": "خطتك الحالية لا تتضمن هذه الميزة."
+    },
+    "webhooks": {
+      "not_found": "لم يتم العثور على حدث الـ Webhook.",
+      "not_failed": "يمكن إعادة محاولة الأحداث الفاشلة فقط."
     }
   },
   "auth": {
@@ -408,7 +412,8 @@
       "registration.rejected": "رفض طلب تسجيل",
       "registration.info_requested": "طلب معلومات إضافية",
       "platform.member_invite_link": "إنشاء رابط دعوة لعضو (المدير العام)",
-      "platform.member_reset_link": "إنشاء رابط إعادة تعيين لعضو (المدير العام)"
+      "platform.member_reset_link": "إنشاء رابط إعادة تعيين لعضو (المدير العام)",
+      "webhook.retried": "إعادة محاولة حدث Webhook فاشل"
     }
   },
   "platform": {

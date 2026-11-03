@@ -189,6 +189,7 @@ module.exports = function companyAdminRoutes({ db, config, mailer }) {
     const reason = v.str(req.body?.reason, { field: 'reason', required: true, max: 500 });
     const c = await setStatus(req, ['active', 'pending'], 'suspended', { suspended_at: new Date(), suspension_reason: reason }, 'company.suspended');
     await db.knex('sessions').where({ company_id: c.id }).del(); // members are signed out immediately
+    req.app.locals.realtime?.disconnectCompany(c.id);
     res.json({ company: companyOut(c) });
   });
   router.post('/:id/reactivate', async (req, res) => {

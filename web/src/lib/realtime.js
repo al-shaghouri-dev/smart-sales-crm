@@ -1,0 +1,39 @@
+import { io } from 'socket.io-client';
+
+/**
+ * Same-origin Socket.IO connection. Authentication is the httpOnly session cookie (sent
+ * automatically); the client never sends a company id or chooses rooms — the server assigns them.
+ * Status is mirrored on <html data-realtime="…"> for diagnostics and browser tests.
+ */
+let socket = null;
+const listeners = new Map();
+
+function setStatus(status) {
+  document.documentElement.dataset.realtime = status;
+}
+
+export function connectRealtime() {
+  if (socket) return socket;
+  socket = io({ path: '/socket.io', withCredentials: true, transports: ['websocket', 'polling'] });
+  setStatus('connecting');
+  socket.on('connect', () => setStatus('connected'));
+  socket.on('disconnect', () => setStatus('disconnected'));
+  socket.on('connect_error', () => setStatus('error'));
+  for (const [event, handlers] of listeners) for (const h of handlers) socket.on(event, h);
+  return socket;
+}
+
+export function disconnectRealtime() {
+  if (!socket) return;
+  socket.disconnect();
+  socket = null;
+  setStatus('off');
+}
+
+/** Subscribe to a server event; returns an unsubscribe function. */
+export function onRealtime(event, handler) {
+  if (!listeners.has(event)) listeners.set(event, new Set());
+  listeners.get(event).add(handler);
+  socket?.on(event, handler);
+  return () => { listeners.get(event)?.delete(handler); socket?.off(event, handler); };
+}
