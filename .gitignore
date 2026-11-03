@@ -1,0 +1,21 @@
+# Dependencies & builds
+node_modules/
+dist/
+coverage/
+*.log
+
+# Runtime data and uploads — never commit
+data/
+public/uploads/
+uploads/
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
