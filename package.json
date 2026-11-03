@@ -24,7 +24,7 @@
     "secrets:rotate": "node scripts/rotate-encryption-keys.js"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22.12"
   },
   "dependencies": {
     "@socket.io/postgres-adapter": "^0.5.0",

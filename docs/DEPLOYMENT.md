@@ -7,7 +7,7 @@ unchanged on a laptop, on free hosting tiers and on a paid VPS — only environm
 
 | Component | Technology | Notes |
 |---|---|---|
-| API + frontend | Node.js 22 / Express 5, React build served by Express | **One origin** for API, pages and Socket.IO (see §6) |
+| API + frontend | Node.js 22.12+ (required by pg-boss 12) / Express 5, React build served by Express | **One origin** for API, pages and Socket.IO (see §6) |
 | Database | PostgreSQL 16 (14+ should work) | RLS-enforced app role + schema-owner role for migrations |
 | Background jobs | pg-boss (tables in schema `pgboss`, same database) | No Redis or paid queue |
 | Real-time | Socket.IO (same HTTP server) | Optional PostgreSQL adapter for several instances |
