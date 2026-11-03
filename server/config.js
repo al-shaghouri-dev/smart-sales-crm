@@ -13,7 +13,10 @@ function loadConfig(env = process.env) {
     env: nodeEnv,
     isProd,
     port,
-    trustProxy: env.TRUST_PROXY === 'true',
+    // Number of reverse proxies in front of the app ("true" = 1). Needed for correct client IPs
+    // (rate limits, audit log). Example: browser → Vercel rewrite → host load balancer → app = 2.
+    // Never set higher than the real number of proxies, or clients could spoof their IP.
+    trustProxy: env.TRUST_PROXY === 'true' ? 1 : (/^[1-9]$/.test(String(env.TRUST_PROXY || '')) ? Number(env.TRUST_PROXY) : false),
     databaseUrl: env.DATABASE_URL,
     // Optional non-pooled connection for features needing a session-pinned connection
     // (pg-boss, LISTEN/NOTIFY). Use it when DATABASE_URL points at a transaction-mode pooler.

@@ -14,7 +14,10 @@ function setStatus(status) {
 
 export function connectRealtime() {
   if (socket) return socket;
-  socket = io({ path: '/socket.io', withCredentials: true, transports: ['websocket', 'polling'] });
+  // Default transports: start with HTTP long-polling, then upgrade to WebSocket when the path
+  // allows it. This keeps working behind proxies without WebSocket support (e.g. a static host
+  // that forwards /socket.io to the Node server) instead of failing outright.
+  socket = io({ path: '/socket.io', withCredentials: true });
   setStatus('connecting');
   socket.on('connect', () => setStatus('connected'));
   socket.on('disconnect', () => setStatus('disconnected'));

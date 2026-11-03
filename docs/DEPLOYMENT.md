@@ -156,7 +156,50 @@ They are **not** reliable for paying customers: sleeping instances stop backgrou
 delay webhooks. The first paid step that removes these limits is one small always-on server
 (e.g. a VPS running `npm start` with `PROCESS_ROLE=all`, PostgreSQL alongside or managed).
 
-## 8. Moving to a VPS later (no code changes)
+## 8. Vercel (frontend only)
+
+Vercel **cannot host this backend by itself**:
+
+| Requirement | Why Vercel alone cannot provide it | Where it must run instead |
+|---|---|---|
+| PostgreSQL | Vercel has no built-in PostgreSQL in this setup | A PostgreSQL provider (free tier for demos) or the VPS |
+| Background jobs (pg-boss workers + schedules) | Vercel functions are short-lived and stop between requests | An always-on Node.js process (`npm start` or `--role=worker`) |
+| Socket.IO / WebSockets | Vercel functions do not keep WebSocket connections | The same always-on Node.js process |
+| Webhook processing | Needs the job workers above | Node.js process (Vercel may forward the HTTP request) |
+| Uploaded files (logos, later media) | No persistent disk | Node.js host disk now; S3-compatible storage before production |
+
+What the repository is prepared for:
+
+- `vercel.json` builds **only the frontend** (`npm run build` → `dist/web`) with `framework: null`,
+  sends the same security headers as Express (CSP, HSTS, no-referrer, frame denial), and forwards
+  `/api`, `/socket.io`, `/webhooks` and `/uploads` to the Node.js backend. The browser therefore sees
+  **one origin** (the Vercel domain): session cookies and CSRF protection work unchanged.
+- `.vercelignore` keeps backend code, tests, data and secrets out of the Vercel upload.
+- `scripts/check-vercel-config.js` runs before the Vercel build and **blocks the deployment** while the
+  backend origin is still the placeholder `BACKEND_ORIGIN_NOT_CONFIGURED.invalid`, if a destination is
+  not `https`, if the rewrites point to different origins, or if security headers were removed.
+- Socket.IO starts with HTTP long-polling and upgrades to WebSocket when possible. Through a Vercel
+  rewrite it stays on long-polling (works, slightly higher latency/requests).
+
+Steps (after a backend host is chosen — nothing has been created or deployed):
+
+1. Run the Node.js backend somewhere always-on with PostgreSQL (see §2, §6, §7).
+2. Replace `https://BACKEND_ORIGIN_NOT_CONFIGURED.invalid` in the four rewrites of `vercel.json` with the
+   backend's https origin, commit.
+3. Import the GitHub repository in Vercel (root directory = repository root; settings come from `vercel.json`).
+4. On the **backend**, set:
+   - `APP_URL=https://<your-vercel-domain>` (invitation/reset links and the default socket origin)
+   - `REALTIME_ALLOWED_ORIGINS=https://<your-vercel-domain>`
+   - `TRUST_PROXY=2` when traffic passes Vercel **and** the host's own load balancer (use the real count;
+     too high lets clients spoof their IP, too low makes every user share one rate-limit bucket)
+   - `NODE_ENV=production`, encryption keys, database URLs (see `.env.example`)
+5. Point provider webhooks (Phase 3.3+) at the backend origin directly (preferred) or at the Vercel domain.
+
+Limits of this split: every API call makes an extra hop through Vercel; long-polling uses more requests than
+WebSockets; Vercel rewrite timeouts apply to slow API calls. A single always-on Node.js host serving
+everything (§1) avoids all of these and is the simplest production setup.
+
+## 9. Moving to a VPS later (no code changes)
 
 1. Install Node.js 22 and PostgreSQL (or use a managed database); create the two roles as in §2.1.
 2. Copy `.env` values (keep the same encryption keys!), set `NODE_ENV=production`, `APP_URL`,

@@ -39,7 +39,7 @@ function createApp(config, options = {}) {
 
   const app = express();
   app.disable('x-powered-by');
-  app.set('trust proxy', config.trustProxy ? 1 : false);
+  app.set('trust proxy', config.trustProxy === true ? 1 : (config.trustProxy || false));
   app.use(helmet({
     contentSecurityPolicy: {
       directives: {

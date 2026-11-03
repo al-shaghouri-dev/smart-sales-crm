@@ -15,6 +15,10 @@ uploads/
 .env.*
 !.env.example
 
+# Deployment tooling (local project links, never commit)
+.vercel/
+*.bundle
+
 # OS / editor
 .DS_Store
 Thumbs.db

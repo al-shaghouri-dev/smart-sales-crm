@@ -7,8 +7,8 @@ const { COOKIE, parseCookies, resolveSession } = require('../middleware/session'
  * Security model
  *  - Handshake: the httpOnly session cookie is resolved with the SAME function the HTTP API uses
  *    (expiry, disabled accounts, company status, membership status, permissions).
- *  - Origin check: browsers must present an allowed Origin (prevents cross-site WebSocket hijacking,
- *    since cookies are sent automatically).
+ *  - Origin check (prevents cross-site WebSocket hijacking, since cookies are sent automatically):
+ *    a present Origin must be allow-listed; without Origin only Sec-Fetch-Site: same-origin passes.
  *  - Rooms are computed by the server only; clients never choose a company or room name:
  *      user:<userId>, session:<sessionId>, company:<companyId>, company:<companyId>:perm:<permission>,
  *      platform (Super Admin console sessions only).
@@ -35,7 +35,12 @@ function createRealtime({ httpServer, db, config, logger = console }) {
     cors: { origin: [...allowed], credentials: true },
     allowRequest: (req, callback) => {
       const origin = req.headers.origin;
-      callback(null, Boolean(origin && allowed.has(origin)));
+      // Cross-origin requests and every WebSocket handshake carry Origin: it must be allow-listed.
+      if (origin) return callback(null, allowed.has(origin));
+      // Same-origin GET requests (HTTP long-polling) carry no Origin. Browsers then send
+      // Sec-Fetch-Site, which page scripts cannot forge; accept only "same-origin". Requests with
+      // neither header (no browser proof) are refused.
+      callback(null, req.headers['sec-fetch-site'] === 'same-origin');
     },
     maxHttpBufferSize: 64 * 1024,
     connectionStateRecovery: undefined

@@ -71,6 +71,11 @@ describe('provider adapter contract & registry', () => {
     assert.throws(() => loadConfig({ ...prod, CHANNEL_PROVIDERS: 'fake' }), /fake channel provider/);
     assert.throws(() => loadConfig({ ...base, PROCESS_ROLE: 'both' }), /PROCESS_ROLE/);
     assert.throws(() => loadConfig({ ...base, REALTIME_ADAPTER: 'redis' }), /REALTIME_ADAPTER/);
+    assert.equal(loadConfig(base).trustProxy, false);
+    assert.equal(loadConfig({ ...base, TRUST_PROXY: 'true' }).trustProxy, 1);
+    assert.equal(loadConfig({ ...base, TRUST_PROXY: '2' }).trustProxy, 2, 'Vercel rewrite + host load balancer');
+    assert.equal(loadConfig({ ...base, TRUST_PROXY: '0' }).trustProxy, false);
+    assert.equal(loadConfig({ ...base, TRUST_PROXY: 'yes' }).trustProxy, false, 'invalid values never trust');
     const c = loadConfig({ ...base, APP_URL: 'https://crm.example.test/' });
     assert.deepEqual(c.realtime.allowedOrigins, ['https://crm.example.test'], 'realtime origins default to APP_URL');
   });
@@ -112,7 +117,7 @@ describe('fake provider (mock) behaviour', () => {
   });
 
   test('stored error text redacts token-like strings', () => {
-    assert.equal(redact('failed with token EAAGm0PX4ZCpsBAKZCZBnQ1x2y3z4a5b6c7d8e9f0'), 'failed with token [redacted]');
+    assert.equal(redact('failed with token Zx9QwErTyUiOpAsDfGhJkLzXcVbNm123456'), 'failed with token [redacted]');
     assert.ok(redact('x'.repeat(1000)).length <= 300);
   });
 });

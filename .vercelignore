@@ -1,0 +1,20 @@
+# Vercel builds and serves ONLY the static frontend (web/ → dist/web).
+# Backend code, tests, data and local artefacts are never uploaded to Vercel.
+server/
+db/
+legacy/
+test/
+docker/
+docs/
+data/
+uploads/
+public/uploads/
+coverage/
+*.bundle
+*.log
+.env
+.env.*
+knexfile.js
+docker-compose.yml
+scripts/*
+!scripts/check-vercel-config.js

@@ -285,6 +285,26 @@ describe('Phase 3.1 infrastructure', { skip }, () => {
       assert.equal(ok.ok, true);
     });
 
+    test('HTTP long-polling (used behind proxies): same-origin without Origin passes; cross-site and unproven are refused', async () => {
+      rt = await startRuntime();
+      await h.createCompanyFixture('Alpha', 'a@alpha.test');
+      const cookie = await h.sessionCookie(rt.app, 'a@alpha.test');
+      const poll = headers => {
+        const socket = ioClient(rt.url, { transports: ['polling'], reconnection: false, forceNew: true, timeout: 4000, extraHeaders: { Cookie: cookie, ...headers } });
+        sockets.push(socket);
+        return new Promise(resolve => {
+          socket.once('ready', info => resolve({ ok: true, info }));
+          socket.once('connect_error', err => resolve({ ok: false, code: err.data?.code || err.message }));
+        });
+      };
+      assert.equal((await poll({ 'Sec-Fetch-Site': 'same-origin' })).ok, true, 'browser same-origin polling (no Origin header)');
+      assert.equal((await poll({ Origin: 'http://localhost' })).ok, true, 'allow-listed Origin');
+      assert.equal((await poll({ 'Sec-Fetch-Site': 'cross-site' })).ok, false, 'cross-site request refused');
+      assert.equal((await poll({ 'Sec-Fetch-Site': 'same-site' })).ok, false, 'sibling subdomain refused');
+      assert.equal((await poll({})).ok, false, 'no Origin and no browser proof refused');
+      assert.equal((await poll({ Origin: 'https://evil.example', 'Sec-Fetch-Site': 'same-origin' })).ok, false, 'a present Origin always wins');
+    });
+
     test('pending / suspended companies and expired sessions cannot connect', async () => {
       rt = await startRuntime();
       await h.createCompanyFixture('Pending', 'p@pending.test', { status: 'pending' });
