@@ -1,0 +1,22 @@
+# Local development database. Usage: docker compose up -d
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD:-postgres-dev-only}
+      # Passwords for the two application roles (see docker/postgres/init.sh). Dev defaults only.
+      SSCRM_OWNER_PASSWORD: ${SSCRM_OWNER_PASSWORD:-change-me-owner}
+      SSCRM_APP_PASSWORD: ${SSCRM_APP_PASSWORD:-change-me-app}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/postgres/init.sh:/docker-entrypoint-initdb.d/10-init.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      retries: 10
+volumes:
+  pgdata:

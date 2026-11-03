@@ -72,8 +72,8 @@ const EXPORT_COLUMNS = {
 function createApp(options = {}) {
   const env = options.env || process.env;
   const isProd = env.NODE_ENV === 'production';
-  const DATA = options.dataDir || path.join(__dirname, 'data');
-  const UPLOADS = options.uploadsDir || path.join(__dirname, 'public', 'uploads');
+  const DATA = options.dataDir || path.join(__dirname, '..', 'data');
+  const UPLOADS = options.uploadsDir || path.join(__dirname, '..', 'public', 'uploads');
   const FRONTEND = path.join(__dirname, 'frontend');
   const fetchImpl = options.fetch || globalThis.fetch;
   const allowUnsignedWebhooks = env.ALLOW_UNSIGNED_WEBHOOKS === 'true' && !isProd;

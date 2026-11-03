@@ -1,26 +1,59 @@
 # Smart Sales CRM
 
-Sales & customer-service CRM being evolved into a multi-tenant SaaS platform.
+Multi-tenant sales & customer-messaging CRM platform (Arabic / English).
 
-## Quick start (legacy server)
+**Status:** Phase 1 (SaaS foundation) — multi-tenant PostgreSQL with Row Level Security, sessions,
+roles & permissions, platform & company branding, Arabic/English with RTL, React frontend.
+Inbox, customers, orders and messaging channels are being rebuilt in later phases; until then the
+original prototype is kept runnable under `legacy/` (`npm run legacy`).
 
-```bash
-cp .env.example .env
-npm install
-npm run create-admin -- <username> "<Full Name>"   # prompts for a password (min 8 chars)
-npm start                                          # http://localhost:3000
+## Stack
+Node.js + Express 5 · PostgreSQL 16 + Knex migrations · React 18 + Vite · i18next
+
+```
+server/        API (routes, session/permission middleware, services)
+db/migrations/ Knex migrations (schema + RLS policies)
+web/           React frontend (locales in web/src/locales/{ar,en}.json)
+scripts/       CLI: create platform admin, create company
+test/          API/RLS integration tests (real PostgreSQL) + frontend unit tests
+legacy/        Original single-workspace prototype (Phase 0 hardened)
 ```
 
-There is **no default account**. Runtime data (`data/`) and uploads are git-ignored.
+## Local setup
+
+```bash
+cp .env.example .env            # then edit passwords / keys
+docker compose up -d            # PostgreSQL with owner + app roles (docker/postgres/init.sh)
+npm install
+npm run migrate                 # runs as DATABASE_MIGRATION_URL (schema owner)
+npm run platform:admin -- --email you@example.com --name "Your Name"     # prompts for password
+npm run company:create -- --name "Acme" --owner-email owner@acme.com --owner-name "Owner Name"
+npm run dev                     # API on :3000
+npm run dev:web                 # UI on :5173 (proxies /api)
+```
+
+Production: `npm run build && npm start` (Express serves `dist/web`). Set `NODE_ENV=production`,
+`APP_ENCRYPTION_KEY`, and `TRUST_PROXY=true` behind a proxy. There are **no default accounts**.
+
+## Security model
+- **Two database roles.** Migrations run as the schema owner; the app connects as `APP_DB_ROLE`
+  (no superuser, no BYPASSRLS). Every tenant table has `FORCE ROW LEVEL SECURITY`.
+- **Tenant context per transaction** (`server/db.js → withContext`) sets `app.company_id` / `app.user_id`
+  with `SET LOCAL` semantics; routes also filter by `company_id` explicitly (defence in depth).
+- Platform-wide access (`app.platform_admin`) is enabled only inside `/api/platform` handlers.
+- Sessions: random token in an httpOnly SameSite cookie, stored hashed in `sessions`; CSRF token required for writes.
+- Permissions are checked server-side (`requirePermission`); members cannot grant permissions they lack,
+  edit their own role, or manage owners; a company admin cannot change credentials of an account shared with another company.
+- Audit log (`audit_logs`) records sensitive actions; secrets are redacted.
 
 ## Tests
 
 ```bash
+# needs a throwaway database; see TEST_* in .env.example
 npm test
 ```
 
-## Security notes
-
-- All `/api` routes require a session (httpOnly cookie) and a CSRF token for writes; manager-only routes are enforced server-side.
-- Meta webhooks are rejected unless `META_APP_SECRET` is set (signatures are verified over the raw request body).
-- Secrets should be supplied via environment variables; they are never returned to the browser.
+## Localization
+Language on first visit follows the device (`ar*` → Arabic RTL, `en*` → English LTR, otherwise the platform default).
+A manual choice is saved on the device and on the account and is never overridden by detection.
+Add a language: create `web/src/locales/<code>.json`, register it in `web/src/lib/i18n.js` and `SUPPORTED_LOCALES`.

@@ -22,7 +22,7 @@ async function promptHidden(question) {
   }
   const password = process.env.ADMIN_PASSWORD || await promptHidden('Password (min 8 chars): ');
   if (String(password).length < 8) { console.error('Password must be at least 8 characters.'); process.exit(1); }
-  const app = createApp({ dataDir: process.env.DATA_DIR || path.join(__dirname, '..', 'data') });
+  const app = createApp({ dataDir: process.env.DATA_DIR || path.join(__dirname, '..', '..', 'data') });
   const { readData, writeData, hashPassword } = app.locals;
   const employees = readData('employees');
   const key = username.trim().toLowerCase();

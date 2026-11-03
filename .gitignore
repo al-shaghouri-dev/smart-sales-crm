@@ -1,6 +1,7 @@
 # Dependencies & builds
 node_modules/
 dist/
+uploads/
 coverage/
 *.log
 
