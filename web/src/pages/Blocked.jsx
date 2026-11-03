@@ -25,3 +25,18 @@ export default function Blocked() {
     </div>
   );
 }
+
+/** Shown instead of workspace pages when an inactive subscription blocks access (data is preserved). */
+export function SubscriptionBlocked() {
+  const { t } = useTranslation();
+  const { can, platform } = useApp();
+  return (
+    <div className="blocked">
+      <Ban size={36} aria-hidden />
+      <h1>{t('subscriptionBanner.blockedTitle')}</h1>
+      <p>{t('subscriptionBanner.blockedBody')}</p>
+      {platform.supportEmail && <p className="muted" dir="ltr">{platform.supportEmail}</p>}
+      {can('billing.view') && <a className="btn btn-primary" href="/billing">{t('subscriptionBanner.viewBilling')}</a>}
+    </div>
+  );
+}

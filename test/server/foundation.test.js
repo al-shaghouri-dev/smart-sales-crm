@@ -349,7 +349,7 @@ describe('Phase 1 foundation', { skip }, () => {
       assert.equal((await owner.agent.patch('/api/platform/settings').set('X-CSRF-Token', owner.csrf).send({ appName: 'Hacked' })).status, 403);
       assert.equal((await owner.agent.get('/api/platform/companies')).status, 403);
 
-      const root = await h.login(app, 'root@platform.test');
+      const root = await h.platformLogin(app, 'root@platform.test');
       assert.equal(root.me.user.isPlatformAdmin, true);
       assert.equal(root.me.company, null);
       const res = await root.agent.patch('/api/platform/settings').set('X-CSRF-Token', root.csrf).send({

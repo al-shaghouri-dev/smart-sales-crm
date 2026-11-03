@@ -6,7 +6,8 @@ const multer = require('multer');
 const { rateLimit } = require('express-rate-limit');
 const { createDb } = require('./db');
 const { createStorage } = require('./storage');
-const { loadSession } = require('./middleware/session');
+const { loadSession, enforceSubscription } = require('./middleware/session');
+const { createMailer } = require('./services/mailer');
 const { AppError } = require('./errors');
 
 const WEB_DIST = path.join(__dirname, '..', 'dist', 'web');
@@ -17,7 +18,9 @@ const WEB_DIST = path.join(__dirname, '..', 'dist', 'web');
 function createApp(config, options = {}) {
   const db = options.db || createDb(config.databaseUrl);
   const storage = createStorage(config.uploadsDir);
-  const deps = { db, config, storage };
+  const mailer = options.mailer || createMailer(config.mail);
+  const subscriptionGuard = enforceSubscription(db);
+  const deps = { db, config, storage, mailer, onPolicyChange: subscriptionGuard.invalidate };
 
   const app = express();
   app.disable('x-powered-by');
@@ -48,14 +51,19 @@ function createApp(config, options = {}) {
   app.use('/api', rateLimit({ windowMs: 60 * 1000, limit: options.apiRateLimit || 600, standardHeaders: 'draft-7', legacyHeaders: false }));
   app.use('/uploads', express.static(config.uploadsDir, { dotfiles: 'deny', index: false, fallthrough: false }));
   app.use(loadSession(db));
+  // Expired/suspended subscriptions: read-only or billing-only access to workspace APIs (never data deletion).
+  app.use(['/api/company', '/api/team', '/api/roles', '/api/audit', '/api/billing', '/api/notifications'], subscriptionGuard);
 
   app.use('/api/public', require('./routes/platform').publicRoutes(deps));
+  app.use('/api/public', require('./routes/platform-registrations').publicRegistrationRoutes(deps));
   app.use('/api/auth', require('./routes/auth')(deps));
   app.use('/api/me', require('./routes/me')(deps));
   app.use('/api/company', require('./routes/company')(deps));
   app.use('/api/team', require('./routes/team')(deps));
   app.use('/api/roles', require('./routes/roles')(deps));
   app.use('/api/audit', require('./routes/audit')(deps));
+  app.use('/api/billing', require('./routes/billing').billingRoutes(deps));
+  app.use('/api/notifications', require('./routes/billing').notificationRoutes(deps));
   app.use('/api/platform', require('./routes/platform').platformRoutes(deps));
   app.use('/api', (_req, _res, next) => next(new AppError(404, 'common.not_found', 'Not found')));
 
@@ -82,6 +90,7 @@ function createApp(config, options = {}) {
   });
 
   app.locals.db = db;
+  app.locals.mailer = mailer;
   return app;
 }
 

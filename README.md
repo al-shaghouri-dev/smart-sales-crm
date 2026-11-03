@@ -2,8 +2,9 @@
 
 Multi-tenant sales & customer-messaging CRM platform (Arabic / English).
 
-**Status:** Phase 1 (SaaS foundation) — multi-tenant PostgreSQL with Row Level Security, sessions,
-roles & permissions, platform & company branding, Arabic/English with RTL, React frontend.
+**Status:** Phase 2 — Super Admin console, company management, plans & subscriptions (manual payments),
+self-registration with approval, secure invitations & password reset — on top of the Phase 1 foundation
+(multi-tenant PostgreSQL with Row Level Security, sessions, roles & permissions, branding, Arabic/English).
 Inbox, customers, orders and messaging channels are being rebuilt in later phases; until then the
 original prototype is kept runnable under `legacy/` (`npm run legacy`).
 
@@ -27,13 +28,24 @@ docker compose up -d            # PostgreSQL with owner + app roles (docker/post
 npm install
 npm run migrate                 # runs as DATABASE_MIGRATION_URL (schema owner)
 npm run platform:admin -- --email you@example.com --name "Your Name"     # prompts for password
-npm run company:create -- --name "Acme" --owner-email owner@acme.com --owner-name "Owner Name"
+npm run company:create -- --name "Acme" --owner-email owner@acme.com --owner-name "Owner Name"   # optional; the admin console can do this
 npm run dev                     # API on :3000
 npm run dev:web                 # UI on :5173 (proxies /api)
 ```
 
 Production: `npm run build && npm start` (Express serves `dist/web`). Set `NODE_ENV=production`,
 `APP_ENCRYPTION_KEY`, and `TRUST_PROXY=true` behind a proxy. There are **no default accounts**.
+
+## Areas
+- `/admin/login` → **Super Admin console** (separate session; companies, registrations, plans, subscriptions, payments, platform settings)
+- `/login` → **company workspace**; `/register` → self-service registration (approval required)
+- `/invite/:token`, `/reset-password/:token` → one-time links (invitations expire after 7 days, resets after 1 hour)
+
+## Subscriptions
+Plans (monthly / yearly / custom days) are managed in the console. Payments are confirmed manually and can extend the
+subscription. An hourly job (`npm run jobs:subscriptions` to run it once) expires overdue subscriptions and notifies
+owners 7 and 1 days before expiry. Expired or suspended subscriptions switch the workspace to read-only or billing-only
+(platform setting). **Company data is never deleted by subscription changes.**
 
 ## Security model
 - **Two database roles.** Migrations run as the schema owner; the app connects as `APP_DB_ROLE`

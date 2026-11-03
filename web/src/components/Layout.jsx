@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Building2, ClipboardList, LayoutDashboard, LogOut, Menu, Palette, Settings, ShieldCheck, UserCircle, Users, X } from 'lucide-react';
+import { AlertTriangle, Building2, ClipboardList, CreditCard, Inbox, Layers, LayoutDashboard, LogOut, Menu, Palette, Settings, ShieldCheck, UserCircle, Users, X } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { LanguageSwitcher, ThemeToggle } from './Preferences';
 import { IconButton } from './ui';
@@ -30,6 +30,28 @@ export function BrandMark({ logoUrl, name, size = 36 }) {
   );
 }
 
+/** Workspace notice when the subscription is ending, read-only or blocked. */
+function SubscriptionBanner() {
+  const { t } = useTranslation();
+  const { me, can } = useApp();
+  const sub = me.subscription;
+  if (!sub) return null;
+  const billing = can('billing.view');
+  let tone = null, text = null;
+  if (sub.access === 'blocked') { tone = 'danger'; text = t('subscriptionBanner.blocked'); }
+  else if (sub.access === 'read_only') { tone = 'danger'; text = t('subscriptionBanner.readOnly'); }
+  else if (billing && sub.status === 'active' && sub.daysLeft !== null && sub.daysLeft <= 7) { tone = 'warning'; text = t('subscriptionBanner.endingSoon', { count: Math.max(sub.daysLeft, 0) }); }
+  else if (billing && sub.status === 'pending') { tone = 'warning'; text = t('subscriptionBanner.pending'); }
+  if (!tone) return null;
+  return (
+    <div className={`banner banner-${tone}`} role="status">
+      <AlertTriangle size={16} aria-hidden />
+      <span>{text}</span>
+      {billing && <Link to="/billing">{t('subscriptionBanner.viewBilling')}</Link>}
+    </div>
+  );
+}
+
 export default function Layout() {
   const { t } = useTranslation();
   const { me, platform, can, signOut, switchCompany } = useApp();
@@ -38,7 +60,8 @@ export default function Layout() {
   useEffect(() => setOpen(false), [location.pathname]);
 
   const company = me.company;
-  const hasWorkspace = me.companyAccess === 'active';
+  const isPlatform = me.sessionKind === 'platform';
+  const hasWorkspace = !isPlatform && me.companyAccess === 'active';
   const brandName = company?.branding?.displayName || company?.name || platform.appName;
   const brandLogo = company?.branding?.logoUrl || platform.logoUrl;
 
@@ -47,11 +70,16 @@ export default function Layout() {
     can('users.view') || can('users.manage') ? { to: '/team', icon: Users, label: t('nav.team') } : null,
     can('roles.manage') ? { to: '/roles', icon: ShieldCheck, label: t('nav.roles') } : null,
     can('company.settings.view') || can('company.settings.manage') || can('company.branding.manage') ? { to: '/settings', icon: Settings, label: t('nav.companySettings') } : null,
-    can('audit.view') ? { to: '/audit', icon: ClipboardList, label: t('nav.audit') } : null
+    can('audit.view') ? { to: '/audit', icon: ClipboardList, label: t('nav.audit') } : null,
+    can('billing.view') ? { to: '/billing', icon: CreditCard, label: t('nav.billing') } : null
   ].filter(Boolean) : [];
-  const platformItems = me.user.isPlatformAdmin ? [
-    { to: '/platform/companies', icon: Building2, label: t('nav.platformCompanies') },
-    { to: '/platform/branding', icon: Palette, label: t('nav.platformBranding') }
+  // The Super Admin console is a separate area with its own session; it never mixes with workspace pages.
+  const platformItems = isPlatform ? [
+    { to: '/admin', icon: LayoutDashboard, label: t('nav.overview'), end: true },
+    { to: '/admin/companies', icon: Building2, label: t('nav.platformCompanies') },
+    { to: '/admin/registrations', icon: Inbox, label: t('nav.registrations') },
+    { to: '/admin/plans', icon: Layers, label: t('nav.plans') },
+    { to: '/admin/settings', icon: Palette, label: t('nav.platformSettings') }
   ] : [];
 
   const usable = me.companies.filter(c => c.id !== company?.id);
@@ -63,7 +91,8 @@ export default function Layout() {
           <BrandMark logoUrl={brandLogo} name={brandName} />
           <div className="brand-text">
             <strong>{brandName}</strong>
-            {company && <small>{platform.appName}</small>}
+            {company && !isPlatform && <small>{platform.appName}</small>}
+            {isPlatform && <small className="console-tag">{t('auth.adminConsole')}</small>}
           </div>
           <IconButton label={t('common.close')} onClick={() => setOpen(false)} className="only-mobile"><X size={18} /></IconButton>
         </div>
@@ -75,7 +104,7 @@ export default function Layout() {
           ))}
           {platformItems.length > 0 && <div className="nav-label">{t('nav.platform')}</div>}
           {platformItems.map(item => (
-            <NavLink key={item.to} to={item.to} className="nav-item"><item.icon size={18} aria-hidden />{item.label}</NavLink>
+            <NavLink key={item.to} to={item.to} end={item.end} className="nav-item"><item.icon size={18} aria-hidden />{item.label}</NavLink>
           ))}
         </nav>
 
@@ -90,7 +119,7 @@ export default function Layout() {
         )}
 
         <div className="sidebar-foot">
-          <NavLink to="/account" className="nav-item"><UserCircle size={18} aria-hidden />{t('nav.account')}</NavLink>
+          <NavLink to={isPlatform ? '/admin/account' : '/account'} className="nav-item"><UserCircle size={18} aria-hidden />{t('nav.account')}</NavLink>
           <button type="button" className="nav-item" onClick={signOut}><LogOut size={18} aria-hidden />{t('auth.signOut')}</button>
         </div>
       </aside>
@@ -106,11 +135,14 @@ export default function Layout() {
             <span className="avatar" aria-hidden>{initials(me.user.name)}</span>
             <span className="user-meta">
               <strong>{me.user.name}</strong>
-              <small>{me.membership ? roleLabel(t, me.membership) : (me.user.isPlatformAdmin ? t('nav.platform') : '')}</small>
+              <small>{isPlatform ? t('auth.superAdmin') : me.membership ? roleLabel(t, me.membership) : ''}</small>
             </span>
           </div>
         </header>
-        <main className="content" id="main"><Outlet /></main>
+        <main className="content" id="main">
+          {hasWorkspace && <SubscriptionBanner />}
+          <Outlet />
+        </main>
       </div>
     </div>
   );

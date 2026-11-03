@@ -83,8 +83,9 @@ export function AppProvider({ children }) {
     if (me) api.patch('/api/me/preferences', { theme }).catch(() => {});
   }, [me]);
 
-  const signIn = useCallback(async (email, password) => {
-    await api.post('/api/auth/login', { email, password });
+  /** kind: 'company' (workspace) or 'platform' (Super Admin console). */
+  const signIn = useCallback(async (email, password, kind = 'company') => {
+    await api.post(kind === 'platform' ? '/api/auth/platform-login' : '/api/auth/login', { email, password });
     const data = await loadMe();
     const saved = readSavedLocale();
     if (data.user.locale) { saveLocale(data.user.locale); i18n.changeLanguage(data.user.locale); }

@@ -13,11 +13,12 @@
     "migrate:rollback": "knex migrate:rollback",
     "platform:admin": "node scripts/create-platform-admin.js",
     "company:create": "node scripts/create-company.js",
-    "test": "node --test --test-reporter=spec \"test/**/*.test.js\" \"test/**/*.test.mjs\" \"legacy/test/*.test.js\"",
-    "test:server": "node --test --test-reporter=spec \"test/server/*.test.js\"",
-    "test:web": "node --test --test-reporter=spec \"test/web/*.test.mjs\"",
+    "test": "node --test --test-concurrency=1 --test-reporter=spec \"test/**/*.test.js\" \"test/**/*.test.mjs\" \"legacy/test/*.test.js\"",
+    "test:server": "node --test --test-concurrency=1 --test-reporter=spec \"test/server/*.test.js\"",
+    "test:web": "node --test --test-concurrency=1 --test-reporter=spec \"test/web/*.test.mjs\"",
     "legacy": "node legacy/server.js",
-    "legacy:create-admin": "node legacy/scripts/create-admin.js"
+    "legacy:create-admin": "node legacy/scripts/create-admin.js",
+    "jobs:subscriptions": "node scripts/run-subscription-maintenance.js"
   },
   "engines": {
     "node": ">=20"
@@ -32,6 +33,7 @@
     "knex": "^3.3.0",
     "lucide-react": "^1.67.0",
     "multer": "^2.5.0",
+    "nodemailer": "^10.3.1",
     "pg": "^8.23.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

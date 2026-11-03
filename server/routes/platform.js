@@ -11,8 +11,10 @@ const publicBranding = s => ({
   fontFamily: s.font_family, defaultTheme: s.default_theme, defaultLocale: s.default_locale,
   loginHeading: s.login_heading, loginSubheading: s.login_subheading,
   registrationHeading: s.registration_heading, registrationSubheading: s.registration_subheading,
-  supportEmail: s.support_email, supportPhone: s.support_phone, websiteUrl: s.website_url
+  supportEmail: s.support_email, supportPhone: s.support_phone, websiteUrl: s.website_url,
+  registrationEnabled: s.registration_enabled
 });
+const adminSettings = s => ({ ...publicBranding(s), expiredAccessPolicy: s.expired_access_policy });
 
 /** Public, unauthenticated: global platform identity for login/registration pages. */
 function publicRoutes({ db }) {
@@ -26,13 +28,14 @@ function publicRoutes({ db }) {
 }
 
 /** Super Admin only. Platform context (RLS bypass) is enabled only inside these handlers. */
-function platformRoutes({ db, storage }) {
+function platformRoutes(deps) {
+  const { db, storage } = deps;
   const router = express.Router();
   router.use(requireAuth, requirePlatformAdmin);
   const platform = (req, fn) => db.withContext({ userId: req.user.id, platformAdmin: true }, fn);
 
   router.get('/settings', async (req, res) => {
-    res.json(publicBranding(await platform(req, trx => trx('platform_settings').where({ id: 1 }).first())));
+    res.json(adminSettings(await platform(req, trx => trx('platform_settings').where({ id: 1 }).first())));
   });
 
   router.patch('/settings', async (req, res) => {
@@ -54,7 +57,9 @@ function platformRoutes({ db, storage }) {
       registration_subheading: v.localized(b.registrationSubheading, { field: 'registrationSubheading', max: 300 }),
       support_email: b.supportEmail === '' || b.supportEmail === null ? null : (b.supportEmail !== undefined ? v.email(b.supportEmail, { field: 'supportEmail' }) : undefined),
       support_phone: v.str(b.supportPhone, { field: 'supportPhone', max: 40 }),
-      website_url: v.url(b.websiteUrl, { field: 'websiteUrl' })
+      website_url: v.url(b.websiteUrl, { field: 'websiteUrl' }),
+      expired_access_policy: v.oneOf(b.expiredAccessPolicy, ['read_only', 'block'], { field: 'expiredAccessPolicy' }) ?? undefined,
+      registration_enabled: b.registrationEnabled === undefined ? undefined : Boolean(b.registrationEnabled)
     });
     for (const k of ['logo_url', 'favicon_url']) {
       if (patch[k] && patch[k].startsWith('/uploads/') && !patch[k].startsWith('/uploads/platform/')) throw badRequest('validation.url', 'Invalid URL', { field: k });
@@ -66,10 +71,11 @@ function platformRoutes({ db, storage }) {
       const before = await trx('platform_settings').where({ id: 1 }).first();
       await trx('platform_settings').where({ id: 1 }).update({ ...patch, updated_by: req.user.id, updated_at: trx.fn.now() });
       const after = await trx('platform_settings').where({ id: 1 }).first();
-      await audit(trx, req, { action: 'platform.settings_updated', entityType: 'platform_settings', entityId: 1, before: publicBranding(before), after: publicBranding(after) });
+      await audit(trx, req, { action: 'platform.settings_updated', entityType: 'platform_settings', entityId: 1, before: adminSettings(before), after: adminSettings(after) });
       return after;
     });
-    res.json(publicBranding(s));
+    deps.onPolicyChange?.();
+    res.json(adminSettings(s));
   });
 
   router.post('/branding/:asset', imageUpload.single('file'), async (req, res) => {
@@ -84,15 +90,10 @@ function platformRoutes({ db, storage }) {
     res.json({ ok: true, url });
   });
 
-  // Read-only overview for now; full company management arrives in Phase 2.
-  router.get('/companies', async (req, res) => {
-    const rows = await platform(req, trx => trx('companies as c')
-      .leftJoin('company_memberships as m', 'm.company_id', 'c.id')
-      .groupBy('c.id').orderBy('c.created_at', 'desc')
-      .select('c.id', 'c.name', 'c.slug', 'c.status', 'c.created_at')
-      .count('m.id as members'));
-    res.json({ companies: rows.map(r => ({ id: r.id, name: r.name, slug: r.slug, status: r.status, createdAt: r.created_at, members: Number(r.members) })) });
-  });
+  router.use('/overview', require('./platform-overview')(deps));
+  router.use('/companies', require('./platform-companies')(deps));
+  router.use('/plans', require('./platform-plans')(deps));
+  router.use('/registrations', require('./platform-registrations').registrationAdminRoutes(deps));
 
   return router;
 }

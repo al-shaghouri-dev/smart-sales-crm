@@ -46,17 +46,21 @@
       "account_disabled": "This account has been disabled.",
       "rate_limited": "Too many attempts. Please wait a few minutes and try again.",
       "csrf": "Your session expired. Please reload the page.",
-      "wrong_password": "Your current password is incorrect."
+      "wrong_password": "Your current password is incorrect.",
+      "invitation_pending": "Accept your invitation email to activate this account.",
+      "use_platform_login": "This is a platform administrator account. Sign in through the admin console."
     },
     "company": {
       "suspended": "This workspace is suspended.",
       "pending": "This workspace is awaiting activation.",
       "no_access": "You do not have access to an active workspace.",
       "not_found": "Workspace not found.",
-      "slug_taken": "Could not create a unique company address. Try a different name."
+      "slug_taken": "Could not create a unique company address. Try a different name.",
+      "invalid_transition": "This status change is not allowed."
     },
     "platform": {
-      "forbidden": "Only platform administrators can do this."
+      "forbidden": "Only platform administrators can do this.",
+      "no_company": "Admin console sessions have no workspace."
     },
     "team": {
       "not_found": "Team member not found.",
@@ -68,7 +72,9 @@
       "self_deactivate": "You cannot deactivate your own account.",
       "self_remove": "You cannot remove yourself.",
       "last_owner": "The workspace must keep at least one active owner.",
-      "use_account_page": "Change your own password from the Account page."
+      "use_account_page": "Change your own password from the Account page.",
+      "plan_limit": "Your plan's team seat limit has been reached.",
+      "account_disabled": "This account is disabled."
     },
     "roles": {
       "not_found": "Role not found.",
@@ -87,7 +93,8 @@
       "number": "Enter a valid number.",
       "url": "Enter a valid https:// link.",
       "timezone": "Choose a valid time zone.",
-      "password": "Password must be at least 8 characters."
+      "password": "Password must be at least 8 characters.",
+      "password_mismatch": "Passwords do not match."
     },
     "upload": {
       "invalid_image": "Upload a PNG, JPG, WEBP or GIF image (max 2 MB)."
@@ -98,6 +105,26 @@
       "conflict": "This already exists.",
       "network": "Cannot reach the server. Check your connection.",
       "server_error": "Something went wrong. Please try again."
+    },
+    "token": {
+      "invalid": "This link is invalid, was already used, or has expired."
+    },
+    "registration": {
+      "closed": "Registration is currently closed.",
+      "not_found": "Registration request not found.",
+      "closed_request": "This request has already been processed."
+    },
+    "plans": {
+      "not_found": "Plan not found.",
+      "in_use": "Companies use this plan — deactivate it instead of deleting.",
+      "key_taken": "A plan with this key already exists."
+    },
+    "subscription": {
+      "not_found": "This company has no subscription yet.",
+      "invalid_dates": "The end date must be after the start date.",
+      "needs_future_end": "An active subscription needs an end date in the future.",
+      "read_only": "Your subscription is inactive — the workspace is read-only.",
+      "blocked": "Your subscription is inactive — only billing is available."
     }
   },
   "auth": {
@@ -109,7 +136,15 @@
     "signOut": "Sign out",
     "defaultHeading": "Sales and customer conversations, in one place.",
     "defaultSubheading": "Manage your team, customers and messaging channels from a single, secure workspace.",
-    "contactSupport": "Need help? Contact {{contact}}"
+    "contactSupport": "Need help? Contact {{contact}}",
+    "adminConsole": "Admin console",
+    "adminHeading": "Platform administration",
+    "adminSubheading": "Manage companies, subscriptions, plans and platform settings.",
+    "adminSignIn": "Sign in to the admin console",
+    "forgotPassword": "Forgot your password?",
+    "noAccount": "New to the platform?",
+    "registerCompany": "Register your company",
+    "superAdmin": "Super Admin"
   },
   "nav": {
     "workspace": "Workspace",
@@ -122,7 +157,12 @@
     "platformBranding": "Platform branding",
     "platformCompanies": "Companies",
     "account": "My account",
-    "switchWorkspace": "Switch workspace"
+    "switchWorkspace": "Switch workspace",
+    "billing": "Billing",
+    "overview": "Overview",
+    "plans": "Plans",
+    "platformSettings": "Platform settings",
+    "registrations": "Registrations"
   },
   "blocked": {
     "noWorkspaceTitle": "No workspace yet",
@@ -133,7 +173,7 @@
     "suspendedBody": "Access to {{company}} is suspended. Your data is preserved. Contact the platform team to restore access.",
     "membershipInactiveTitle": "Account deactivated",
     "membershipInactiveBody": "Your access to {{company}} has been deactivated by an administrator.",
-    "platformHint": "You are a platform administrator. Use the Platform menu to manage the service."
+    "platformHint": "Platform administrators use the admin console at /admin."
   },
   "dashboard": {
     "greeting": "Welcome, {{name}}",
@@ -180,7 +220,16 @@
     "removed": "Team member removed",
     "you": "You",
     "owner": "Owner",
-    "empty": "No team members match your search."
+    "empty": "No team members match your search.",
+    "accessSetup": "How will this member sign in?",
+    "sendInvite": "Send an invitation link",
+    "setPassword": "Set a password now",
+    "inviteHint": "Recommended. The member chooses their own password with a one-time link.",
+    "invited": "Invitation created",
+    "invitationLink": "Invitation link",
+    "invitationPending": "Invitation pending",
+    "resendInvite": "New invitation link",
+    "sendResetLink": "Password reset link"
   },
   "roles": {
     "title": "Roles & permissions",
@@ -245,7 +294,8 @@
     "reports.view": "View reports",
     "reports.financial": "View financial reports",
     "channels.manage": "Connect messaging channels",
-    "audit.view": "View the activity log"
+    "audit.view": "View the activity log",
+    "billing.view": "View billing and subscription"
   },
   "company": {
     "title": "Company settings",
@@ -326,7 +376,32 @@
       "platform.logo_uploaded": "Uploaded platform logo",
       "platform.favicon_uploaded": "Uploaded platform favicon",
       "platform.admin_created": "Created a platform admin",
-      "platform.admin_promoted": "Promoted a platform admin"
+      "platform.admin_promoted": "Promoted a platform admin",
+      "platform.login": "Signed in to the admin console",
+      "platform.login_denied": "Admin console sign-in denied",
+      "auth.reset_requested": "Requested a password reset",
+      "auth.invitation_accepted": "Accepted an invitation",
+      "auth.password_reset": "Reset password with a link",
+      "team.member_invited": "Invited a team member",
+      "team.invite_resent": "Created a new invitation link",
+      "team.reset_link_created": "Created a password reset link",
+      "company.updated": "Updated company profile",
+      "company.activated": "Activated the company",
+      "company.suspended": "Suspended the company",
+      "company.reactivated": "Reactivated the company",
+      "company.owner_invite_resent": "Created an owner invitation link",
+      "company.owner_reset_link": "Created an owner reset link",
+      "subscription.created": "Assigned a subscription",
+      "subscription.updated": "Updated the subscription",
+      "subscription.extended": "Extended the subscription",
+      "subscription.expired": "Subscription expired",
+      "payment.recorded": "Recorded a payment",
+      "plan.created": "Created a plan",
+      "plan.updated": "Updated a plan",
+      "plan.deleted": "Deleted a plan",
+      "registration.approved": "Approved a registration",
+      "registration.rejected": "Rejected a registration",
+      "registration.info_requested": "Requested more information"
     }
   },
   "platform": {
@@ -362,6 +437,283 @@
       "active": "Active",
       "pending": "Pending",
       "suspended": "Suspended"
-    }
+    },
+    "policies": "Policies",
+    "expiredPolicy": "When a subscription expires or is suspended",
+    "policy": {
+      "read_only": "Read-only access",
+      "block": "Billing page only"
+    },
+    "policyHint": {
+      "read_only": "Members can view everything but cannot make changes.",
+      "block": "Members can only see the billing page until renewal."
+    },
+    "registrationEnabled": "Allow companies to register themselves",
+    "registrationEnabledHint": "Requests always need approval before any access is granted."
+  },
+  "recovery": {
+    "heading": "Get back into your account",
+    "subheading": "We will send a secure, one-time link to reset your password.",
+    "title": "Reset your password",
+    "intro": "Enter the email address you use to sign in.",
+    "send": "Send reset link",
+    "sent": "If an account exists for this email, a reset link is on its way. It expires in 1 hour.",
+    "noEmail": "Email is not set up on this platform yet. Ask your company administrator for a password reset link.",
+    "backToSignIn": "Back to sign in"
+  },
+  "accept": {
+    "inviteHeading": "Welcome aboard",
+    "inviteSubheading": "Create your password to activate your account.",
+    "resetHeading": "Choose a new password",
+    "resetSubheading": "For your security, this link works only once.",
+    "inviteTitle": "Join {{company}}",
+    "resetTitle": "Set a new password",
+    "confirmPassword": "Confirm password",
+    "activate": "Activate account",
+    "savePassword": "Save password",
+    "inviteDone": "Your account is active. You can sign in now.",
+    "resetDone": "Password updated. Sign in with your new password.",
+    "askNewLink": "Ask your administrator to send you a new link."
+  },
+  "register": {
+    "defaultHeading": "Bring your sales team and customer conversations together.",
+    "defaultSubheading": "Tell us about your company. We review every request and send you an activation link.",
+    "title": "Register your company",
+    "company": "Company",
+    "owner": "Account owner",
+    "plan": "Plan",
+    "reviewNote": "Your request will be reviewed by our team. You will receive an activation link once it is approved.",
+    "submit": "Submit request",
+    "submitted": "Thank you! Your request has been received.",
+    "nextSteps": "We will review it and contact you by email or phone. No access is granted until it is approved.",
+    "haveAccount": "Already have an account?"
+  },
+  "links": {
+    "emailSent": "An email with the link was sent.",
+    "shareOnce": "Email is not configured, so share this one-time link with the person securely. It will not be shown again.",
+    "copy": "Copy",
+    "copied": "Copied",
+    "link": "One-time link",
+    "expiry": "Invitation links expire after 7 days; reset links after 1 hour. Creating a new link cancels older ones.",
+    "none": "No link was created."
+  },
+  "billing": {
+    "title": "Billing",
+    "subtitle": "Your plan, subscription period and payment history.",
+    "plan": "Plan",
+    "price": "Price",
+    "period": "Current period",
+    "daysLeft": "Days left",
+    "seats": "Team seats",
+    "seatsUsed": "{{used}} of {{max}} used",
+    "trial": "Trial",
+    "noSubscription": "No subscription is assigned yet.",
+    "renewContact": "To renew or change your plan, contact {{contact}}.",
+    "notifications": "Notifications",
+    "markRead": "Mark all as read",
+    "noNotifications": "No notifications.",
+    "payments": "Payment history",
+    "noPayments": "No payments recorded yet.",
+    "paidAt": "Date",
+    "amount": "Amount",
+    "method": "Method",
+    "reference": "Reference",
+    "coveredPeriod": "Period covered"
+  },
+  "subscriptionStatus": {
+    "pending": "Pending",
+    "active": "Active",
+    "expired": "Expired",
+    "suspended": "Suspended",
+    "cancelled": "Cancelled",
+    "none": "No subscription"
+  },
+  "registrationStatus": {
+    "pending": "Pending",
+    "info_requested": "Info requested",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "all": "All"
+  },
+  "paymentMethods": {
+    "cash": "Cash",
+    "bank_transfer": "Bank transfer",
+    "card": "Card",
+    "mobile_wallet": "Mobile wallet",
+    "other": "Other"
+  },
+  "subscriptionBanner": {
+    "readOnly": "Your subscription is inactive. The workspace is read-only until it is renewed — your data is safe.",
+    "blocked": "Your subscription is inactive. Access is limited to billing until it is renewed — your data is safe.",
+    "endingSoon": "Your subscription ends in {{count}} day(s).",
+    "pending": "Your subscription is pending activation.",
+    "viewBilling": "View billing",
+    "blockedTitle": "Subscription inactive",
+    "blockedBody": "This workspace is paused until the subscription is renewed. Nothing has been deleted."
+  },
+  "notifications": {
+    "subscription_expiring": "Your subscription ends in {{count}} day(s) ({{date}}).",
+    "subscription_expired": "Your subscription expired on {{date}}. Your data is preserved."
+  },
+  "plans": {
+    "title": "Plans",
+    "subtitle": "Define what each subscription includes. Existing subscriptions keep their price when a plan changes.",
+    "create": "New plan",
+    "edit": "Edit plan",
+    "name": "Plan name",
+    "interval": "Billing period",
+    "intervals": {
+      "month": "Monthly",
+      "year": "Yearly",
+      "custom": "Custom (days)"
+    },
+    "durationDays": "Duration (days)",
+    "trialDays": "Trial days",
+    "maxEmployees": "Team seats",
+    "maxChannels": "Messaging channels",
+    "emptyUnlimited": "Leave empty for unlimited",
+    "features": "Features",
+    "featuresHint": "Features are enforced as each module is released.",
+    "active": "Available for new subscriptions",
+    "public": "Show on the registration page",
+    "activeShort": "Active",
+    "inactive": "Inactive",
+    "private": "Hidden",
+    "editHint": "Price changes apply to new subscriptions only.",
+    "addTemplates": "Add Basic, Pro & Business",
+    "templatesCreated": "{{count}} draft plan(s) created — set prices and activate them.",
+    "emptyTitle": "No plans yet",
+    "emptyBody": "Create your first plan, or add the Basic, Pro and Business drafts and adjust them.",
+    "per": {
+      "month": "month",
+      "year": "year",
+      "custom": "{{days}} days"
+    },
+    "unit": {
+      "month": "month(s)",
+      "year": "year(s)",
+      "custom": "period(s)"
+    },
+    "seats": "Up to {{count}} team members",
+    "unlimitedSeats": "Unlimited team members",
+    "channels": "{{count}} messaging channel(s)",
+    "unlimitedChannels": "Unlimited channels",
+    "unlimited": "Unlimited",
+    "trial": "{{count}}-day free trial",
+    "usedBy": "Used by {{count}} company(ies)",
+    "deleteTitle": "Delete plan “{{name}}”?"
+  },
+  "planFeatures": {
+    "reports.advanced": "Advanced reports",
+    "export.excel": "Excel export",
+    "automation": "Automation & follow-ups",
+    "ai.assistant": "AI assistant",
+    "api.access": "API access",
+    "branding.custom": "Custom company branding"
+  },
+  "admin": {
+    "overviewTitle": "Hello, {{name}}",
+    "overviewSubtitle": "Everything happening across the platform.",
+    "recentCompanies": "Newest companies",
+    "viewAll": "View all",
+    "stats": {
+      "companies": "Companies",
+      "companiesBreakdown": "{{active}} active · {{pending}} pending · {{suspended}} suspended",
+      "activeCompanies": "Active companies",
+      "suspended": "Suspended",
+      "pendingRegistrations": "Registration requests",
+      "activeSubscriptions": "Active subscriptions",
+      "trials": "{{count}} on trial",
+      "expiringSoon": "Ending within 7 days",
+      "expired": "{{count}} expired",
+      "users": "Users",
+      "employees": "{{count}} active memberships",
+      "channels": "Connected channels",
+      "channelsLater": "Available with messaging channels",
+      "mrr": "Monthly recurring revenue",
+      "mrrHint": "Active paid subscriptions, normalised to one month, per currency.",
+      "noRevenue": "No active paid subscriptions yet."
+    },
+    "companiesSubtitle": "Create, review and manage every company on the platform.",
+    "searchCompanies": "Search by name, email or address…",
+    "allStatuses": "All statuses",
+    "allSubscriptions": "All subscriptions",
+    "allPlans": "All plans",
+    "noCompaniesMatch": "No companies match these filters.",
+    "newCompany": "New company",
+    "createCompany": "Create company",
+    "companyCreated": "Company created",
+    "ownerInviteHint": "The owner receives a one-time invitation to set their own password. No password is created by the platform.",
+    "subscription": "Subscription",
+    "noPlanYet": "No plan yet",
+    "periods": "Number of {{unit}}",
+    "startTrial": "Start with the {{count}}-day trial",
+    "ownerInvitation": "Owner invitation",
+    "ownerResetLink": "Owner password reset link",
+    "ownerLink": "Owner access link",
+    "activate": "Activate",
+    "activated": "Company activated",
+    "suspend": "Suspend",
+    "suspended": "Company suspended",
+    "reactivate": "Reactivate",
+    "reactivated": "Company reactivated",
+    "suspendTitle": "Suspend {{name}}?",
+    "suspendBody": "Members are signed out immediately and cannot access the workspace. All data is preserved and the company can be reactivated at any time.",
+    "suspendReason": "Reason (internal)",
+    "suspendedNotice": "Suspended on {{date}} — {{reason}}",
+    "tabs": {
+      "subscription": "Subscription & payments",
+      "profile": "Profile",
+      "members": "Members",
+      "activity": "Activity"
+    },
+    "noSubscription": "This company has no subscription. Assign a plan below.",
+    "assignPlan": "Assign a plan",
+    "changePlan": "Change plan",
+    "changeStatus": "Change status",
+    "recordPayment": "Record payment",
+    "confirmPayment": "Confirm payment",
+    "paymentRecorded": "Payment recorded",
+    "extendOne": "+1 {{unit}}",
+    "extended": "Subscription extended",
+    "subscriptionSaved": "Subscription saved",
+    "createPlansFirst": "Create a plan first:",
+    "startsAt": "Start date",
+    "defaultToday": "Defaults to today",
+    "endsAt": "End date",
+    "endsAtOptional": "End date (optional)",
+    "customPrice": "Custom price (optional)",
+    "notes": "Notes",
+    "internalNotes": "Internal notes",
+    "daysLeft": "{{count}} day(s) left",
+    "extendWithPayment": "Extend the subscription by",
+    "dataPreserved": "Company data is never deleted when a subscription expires, is suspended or is cancelled.",
+    "access": {
+      "read_only": "Read-only",
+      "blocked": "Access blocked"
+    },
+    "registrationsTitle": "Registration requests",
+    "registrationsSubtitle": "Companies that signed up from the registration page.",
+    "noRegistrations": "No requests in this list.",
+    "submitted": "Submitted",
+    "lastMessage": "Last message to applicant",
+    "reviewTab": {
+      "approve": "Approve",
+      "info": "Ask for info",
+      "reject": "Reject"
+    },
+    "reviewAction": {
+      "approve": "Approve & create company",
+      "info": "Send request",
+      "reject": "Reject request"
+    },
+    "companyStatusAfter": "Company status after approval",
+    "approveHint": "Approval creates the company, its roles and subscription, and an invitation for the owner.",
+    "rejectMessage": "Message to the applicant",
+    "infoMessage": "What information do you need?",
+    "messageHint": "Emailed to the applicant when email is configured.",
+    "registrationApproved": "Request approved",
+    "registrationRejected": "Request rejected",
+    "infoRequested": "Information requested"
   }
 }

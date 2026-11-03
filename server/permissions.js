@@ -7,6 +7,7 @@ const PERMISSIONS = [
   { key: 'company.settings.view', category: 'company' },
   { key: 'company.settings.manage', category: 'company' },
   { key: 'company.branding.manage', category: 'company' },
+  { key: 'billing.view', category: 'company' },
   { key: 'users.view', category: 'team' },
   { key: 'users.manage', category: 'team' },
   { key: 'roles.manage', category: 'team' },
@@ -36,7 +37,7 @@ const SYSTEM_ROLES = [
   { key: 'admin', permissions: ALL },
   {
     key: 'manager',
-    permissions: without('company.settings.manage', 'company.branding.manage', 'roles.manage', 'channels.manage', 'audit.view')
+    permissions: without('company.settings.manage', 'company.branding.manage', 'billing.view', 'roles.manage', 'channels.manage', 'audit.view')
   },
   {
     key: 'supervisor',
@@ -49,4 +50,10 @@ const SYSTEM_ROLES = [
   }
 ];
 
-module.exports = { PERMISSIONS, PERMISSION_KEYS: ALL, SYSTEM_ROLES };
+/**
+ * Plan feature flags. Plans store a subset of these keys; enforcement is added
+ * as each feature ships (labels: frontend locales planFeatures.<key>).
+ */
+const PLAN_FEATURES = ['reports.advanced', 'export.excel', 'automation', 'ai.assistant', 'api.access', 'branding.custom'];
+
+module.exports = { PERMISSIONS, PERMISSION_KEYS: ALL, SYSTEM_ROLES, PLAN_FEATURES };

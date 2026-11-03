@@ -7,10 +7,8 @@ import { api } from '../lib/api';
 import { errorMessage } from '../lib/i18n';
 import { BrandMark } from '../components/Layout';
 import { Button, Card, ColorInput, ErrorState, Field, IconButton, ImageUpload, PageHeader, Spinner, fieldError, useLoader, useToast } from '../components/ui';
+import { TIMEZONES } from '../components/ui';
 
-const TIMEZONES = (() => {
-  try { return Intl.supportedValuesOf('timeZone'); } catch { return ['UTC']; }
-})();
 
 function useSave(onDone) {
   const { t } = useTranslation();

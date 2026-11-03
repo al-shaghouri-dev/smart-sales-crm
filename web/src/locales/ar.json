@@ -46,17 +46,21 @@
       "account_disabled": "تم تعطيل هذا الحساب.",
       "rate_limited": "محاولات كثيرة. انتظر بضع دقائق ثم حاول مجدداً.",
       "csrf": "انتهت صلاحية الجلسة. يرجى إعادة تحميل الصفحة.",
-      "wrong_password": "كلمة المرور الحالية غير صحيحة."
+      "wrong_password": "كلمة المرور الحالية غير صحيحة.",
+      "invitation_pending": "اقبل رسالة الدعوة لتفعيل هذا الحساب.",
+      "use_platform_login": "هذا حساب مدير منصة. سجّل الدخول عبر لوحة الإدارة."
     },
     "company": {
       "suspended": "مساحة العمل هذه معلّقة.",
       "pending": "مساحة العمل هذه بانتظار التفعيل.",
       "no_access": "ليس لديك وصول إلى مساحة عمل نشطة.",
       "not_found": "لم يتم العثور على مساحة العمل.",
-      "slug_taken": "تعذّر إنشاء عنوان فريد للشركة. جرّب اسماً آخر."
+      "slug_taken": "تعذّر إنشاء عنوان فريد للشركة. جرّب اسماً آخر.",
+      "invalid_transition": "تغيير الحالة هذا غير مسموح."
     },
     "platform": {
-      "forbidden": "هذا الإجراء متاح لمديري المنصة فقط."
+      "forbidden": "هذا الإجراء متاح لمديري المنصة فقط.",
+      "no_company": "جلسات لوحة الإدارة لا ترتبط بمساحة عمل."
     },
     "team": {
       "not_found": "لم يتم العثور على عضو الفريق.",
@@ -68,7 +72,9 @@
       "self_deactivate": "لا يمكنك تعطيل حسابك.",
       "self_remove": "لا يمكنك إزالة نفسك.",
       "last_owner": "يجب أن يبقى مالك نشط واحد على الأقل في مساحة العمل.",
-      "use_account_page": "غيّر كلمة مرورك من صفحة حسابي."
+      "use_account_page": "غيّر كلمة مرورك من صفحة حسابي.",
+      "plan_limit": "تم الوصول إلى الحد الأقصى لمقاعد الفريق في خطتك.",
+      "account_disabled": "هذا الحساب معطّل."
     },
     "roles": {
       "not_found": "لم يتم العثور على الدور.",
@@ -87,7 +93,8 @@
       "number": "أدخل رقماً صالحاً.",
       "url": "أدخل رابطاً صالحاً يبدأ بـ https://",
       "timezone": "اختر منطقة زمنية صالحة.",
-      "password": "يجب ألا تقل كلمة المرور عن 8 أحرف."
+      "password": "يجب ألا تقل كلمة المرور عن 8 أحرف.",
+      "password_mismatch": "كلمتا المرور غير متطابقتين."
     },
     "upload": {
       "invalid_image": "ارفع صورة PNG أو JPG أو WEBP أو GIF (بحد أقصى 2 ميغابايت)."
@@ -98,6 +105,26 @@
       "conflict": "هذا العنصر موجود مسبقاً.",
       "network": "تعذّر الوصول إلى الخادم. تحقّق من اتصالك.",
       "server_error": "حدث خطأ ما. يرجى المحاولة مرة أخرى."
+    },
+    "token": {
+      "invalid": "هذا الرابط غير صالح أو استُخدم من قبل أو انتهت صلاحيته."
+    },
+    "registration": {
+      "closed": "التسجيل مغلق حالياً.",
+      "not_found": "لم يتم العثور على طلب التسجيل.",
+      "closed_request": "تمت معالجة هذا الطلب مسبقاً."
+    },
+    "plans": {
+      "not_found": "لم يتم العثور على الخطة.",
+      "in_use": "تستخدم شركات هذه الخطة — عطّلها بدلاً من حذفها.",
+      "key_taken": "توجد خطة بهذا المعرّف مسبقاً."
+    },
+    "subscription": {
+      "not_found": "لا يوجد اشتراك لهذه الشركة بعد.",
+      "invalid_dates": "يجب أن يكون تاريخ الانتهاء بعد تاريخ البدء.",
+      "needs_future_end": "يحتاج الاشتراك النشط إلى تاريخ انتهاء في المستقبل.",
+      "read_only": "اشتراكك غير نشط — مساحة العمل للقراءة فقط.",
+      "blocked": "اشتراكك غير نشط — صفحة الفوترة فقط متاحة."
     }
   },
   "auth": {
@@ -109,7 +136,15 @@
     "signOut": "تسجيل الخروج",
     "defaultHeading": "المبيعات ومحادثات العملاء في مكان واحد.",
     "defaultSubheading": "أدر فريقك وعملاءك وقنوات المراسلة من مساحة عمل واحدة وآمنة.",
-    "contactSupport": "تحتاج مساعدة؟ تواصل عبر {{contact}}"
+    "contactSupport": "تحتاج مساعدة؟ تواصل عبر {{contact}}",
+    "adminConsole": "لوحة الإدارة",
+    "adminHeading": "إدارة المنصة",
+    "adminSubheading": "أدر الشركات والاشتراكات والخطط وإعدادات المنصة.",
+    "adminSignIn": "تسجيل الدخول إلى لوحة الإدارة",
+    "forgotPassword": "نسيت كلمة المرور؟",
+    "noAccount": "جديد على المنصة؟",
+    "registerCompany": "سجّل شركتك",
+    "superAdmin": "المدير العام"
   },
   "nav": {
     "workspace": "مساحة العمل",
@@ -122,7 +157,12 @@
     "platformBranding": "هوية المنصة",
     "platformCompanies": "الشركات",
     "account": "حسابي",
-    "switchWorkspace": "تبديل مساحة العمل"
+    "switchWorkspace": "تبديل مساحة العمل",
+    "billing": "الفوترة",
+    "overview": "نظرة عامة",
+    "plans": "الخطط",
+    "platformSettings": "إعدادات المنصة",
+    "registrations": "طلبات التسجيل"
   },
   "blocked": {
     "noWorkspaceTitle": "لا توجد مساحة عمل بعد",
@@ -133,7 +173,7 @@
     "suspendedBody": "تم تعليق الوصول إلى {{company}}. بياناتك محفوظة. تواصل مع فريق المنصة لاستعادة الوصول.",
     "membershipInactiveTitle": "تم تعطيل الحساب",
     "membershipInactiveBody": "قام أحد المسؤولين بتعطيل وصولك إلى {{company}}.",
-    "platformHint": "أنت مدير للمنصة. استخدم قائمة المنصة لإدارة الخدمة."
+    "platformHint": "يستخدم مديرو المنصة لوحة الإدارة عبر ‎/admin."
   },
   "dashboard": {
     "greeting": "مرحباً، {{name}}",
@@ -180,7 +220,16 @@
     "removed": "تمت إزالة العضو",
     "you": "أنت",
     "owner": "المالك",
-    "empty": "لا يوجد أعضاء مطابقون للبحث."
+    "empty": "لا يوجد أعضاء مطابقون للبحث.",
+    "accessSetup": "كيف سيسجّل هذا العضو الدخول؟",
+    "sendInvite": "إرسال رابط دعوة",
+    "setPassword": "تعيين كلمة مرور الآن",
+    "inviteHint": "الخيار المُوصى به. يختار العضو كلمة مروره عبر رابط يُستخدم مرة واحدة.",
+    "invited": "تم إنشاء الدعوة",
+    "invitationLink": "رابط الدعوة",
+    "invitationPending": "بانتظار قبول الدعوة",
+    "resendInvite": "رابط دعوة جديد",
+    "sendResetLink": "رابط إعادة تعيين كلمة المرور"
   },
   "roles": {
     "title": "الأدوار والصلاحيات",
@@ -245,7 +294,8 @@
     "reports.view": "عرض التقارير",
     "reports.financial": "عرض التقارير المالية",
     "channels.manage": "ربط قنوات المراسلة",
-    "audit.view": "عرض سجل النشاط"
+    "audit.view": "عرض سجل النشاط",
+    "billing.view": "عرض الفوترة والاشتراك"
   },
   "company": {
     "title": "إعدادات الشركة",
@@ -326,7 +376,32 @@
       "platform.logo_uploaded": "رفع شعار المنصة",
       "platform.favicon_uploaded": "رفع أيقونة المنصة",
       "platform.admin_created": "إنشاء مدير منصة",
-      "platform.admin_promoted": "ترقية مستخدم إلى مدير منصة"
+      "platform.admin_promoted": "ترقية مستخدم إلى مدير منصة",
+      "platform.login": "تسجيل دخول إلى لوحة الإدارة",
+      "platform.login_denied": "رفض دخول إلى لوحة الإدارة",
+      "auth.reset_requested": "طلب إعادة تعيين كلمة المرور",
+      "auth.invitation_accepted": "قبول دعوة",
+      "auth.password_reset": "إعادة تعيين كلمة المرور عبر رابط",
+      "team.member_invited": "دعوة عضو للفريق",
+      "team.invite_resent": "إنشاء رابط دعوة جديد",
+      "team.reset_link_created": "إنشاء رابط إعادة تعيين كلمة المرور",
+      "company.updated": "تحديث ملف الشركة",
+      "company.activated": "تفعيل الشركة",
+      "company.suspended": "تعليق الشركة",
+      "company.reactivated": "إعادة تفعيل الشركة",
+      "company.owner_invite_resent": "إنشاء رابط دعوة للمالك",
+      "company.owner_reset_link": "إنشاء رابط إعادة تعيين للمالك",
+      "subscription.created": "تعيين اشتراك",
+      "subscription.updated": "تحديث الاشتراك",
+      "subscription.extended": "تمديد الاشتراك",
+      "subscription.expired": "انتهاء الاشتراك",
+      "payment.recorded": "تسجيل دفعة",
+      "plan.created": "إنشاء خطة",
+      "plan.updated": "تحديث خطة",
+      "plan.deleted": "حذف خطة",
+      "registration.approved": "قبول طلب تسجيل",
+      "registration.rejected": "رفض طلب تسجيل",
+      "registration.info_requested": "طلب معلومات إضافية"
     }
   },
   "platform": {
@@ -362,6 +437,283 @@
       "active": "نشطة",
       "pending": "قيد الانتظار",
       "suspended": "معلّقة"
-    }
+    },
+    "policies": "السياسات",
+    "expiredPolicy": "عند انتهاء الاشتراك أو تعليقه",
+    "policy": {
+      "read_only": "وصول للقراءة فقط",
+      "block": "صفحة الفوترة فقط"
+    },
+    "policyHint": {
+      "read_only": "يمكن للأعضاء عرض كل شيء دون إجراء تغييرات.",
+      "block": "يرى الأعضاء صفحة الفوترة فقط حتى التجديد."
+    },
+    "registrationEnabled": "السماح للشركات بالتسجيل بنفسها",
+    "registrationEnabledHint": "تحتاج الطلبات دائماً إلى موافقة قبل منح أي وصول."
+  },
+  "recovery": {
+    "heading": "استعد الوصول إلى حسابك",
+    "subheading": "سنرسل رابطاً آمناً يُستخدم مرة واحدة لإعادة تعيين كلمة المرور.",
+    "title": "إعادة تعيين كلمة المرور",
+    "intro": "أدخل البريد الإلكتروني الذي تستخدمه لتسجيل الدخول.",
+    "send": "إرسال رابط إعادة التعيين",
+    "sent": "إذا كان هناك حساب بهذا البريد فسيصلك رابط إعادة التعيين قريباً، وهو صالح لمدة ساعة.",
+    "noEmail": "لم يُضبط البريد الإلكتروني على هذه المنصة بعد. اطلب من مسؤول شركتك رابط إعادة تعيين كلمة المرور.",
+    "backToSignIn": "العودة لتسجيل الدخول"
+  },
+  "accept": {
+    "inviteHeading": "أهلاً بك",
+    "inviteSubheading": "أنشئ كلمة المرور لتفعيل حسابك.",
+    "resetHeading": "اختر كلمة مرور جديدة",
+    "resetSubheading": "لأمانك، يعمل هذا الرابط مرة واحدة فقط.",
+    "inviteTitle": "انضم إلى {{company}}",
+    "resetTitle": "تعيين كلمة مرور جديدة",
+    "confirmPassword": "تأكيد كلمة المرور",
+    "activate": "تفعيل الحساب",
+    "savePassword": "حفظ كلمة المرور",
+    "inviteDone": "تم تفعيل حسابك. يمكنك تسجيل الدخول الآن.",
+    "resetDone": "تم تحديث كلمة المرور. سجّل الدخول بكلمة المرور الجديدة.",
+    "askNewLink": "اطلب من المسؤول إرسال رابط جديد."
+  },
+  "register": {
+    "defaultHeading": "اجمع فريق المبيعات ومحادثات العملاء في مكان واحد.",
+    "defaultSubheading": "أخبرنا عن شركتك. نراجع كل طلب ونرسل لك رابط التفعيل.",
+    "title": "سجّل شركتك",
+    "company": "الشركة",
+    "owner": "مالك الحساب",
+    "plan": "الخطة",
+    "reviewNote": "سيراجع فريقنا طلبك، وستصلك رسالة تفعيل بعد الموافقة.",
+    "submit": "إرسال الطلب",
+    "submitted": "شكراً لك! تم استلام طلبك.",
+    "nextSteps": "سنراجعه ونتواصل معك عبر البريد أو الهاتف. لا يُمنح أي وصول قبل الموافقة.",
+    "haveAccount": "لديك حساب بالفعل؟"
+  },
+  "links": {
+    "emailSent": "تم إرسال بريد يحتوي على الرابط.",
+    "shareOnce": "البريد الإلكتروني غير مضبوط، لذا شارك هذا الرابط مع الشخص بطريقة آمنة. لن يُعرض مرة أخرى.",
+    "copy": "نسخ",
+    "copied": "تم النسخ",
+    "link": "رابط يُستخدم مرة واحدة",
+    "expiry": "تنتهي روابط الدعوة بعد 7 أيام وروابط إعادة التعيين بعد ساعة. إنشاء رابط جديد يُلغي الروابط السابقة.",
+    "none": "لم يتم إنشاء رابط."
+  },
+  "billing": {
+    "title": "الفوترة",
+    "subtitle": "خطتك وفترة الاشتراك وسجل المدفوعات.",
+    "plan": "الخطة",
+    "price": "السعر",
+    "period": "الفترة الحالية",
+    "daysLeft": "الأيام المتبقية",
+    "seats": "مقاعد الفريق",
+    "seatsUsed": "{{used}} من {{max}} مستخدمة",
+    "trial": "تجربة",
+    "noSubscription": "لم يتم تعيين اشتراك بعد.",
+    "renewContact": "للتجديد أو تغيير الخطة تواصل عبر {{contact}}.",
+    "notifications": "الإشعارات",
+    "markRead": "تعليم الكل كمقروء",
+    "noNotifications": "لا توجد إشعارات.",
+    "payments": "سجل المدفوعات",
+    "noPayments": "لا توجد مدفوعات مسجّلة بعد.",
+    "paidAt": "التاريخ",
+    "amount": "المبلغ",
+    "method": "طريقة الدفع",
+    "reference": "المرجع",
+    "coveredPeriod": "الفترة المغطاة"
+  },
+  "subscriptionStatus": {
+    "pending": "قيد الانتظار",
+    "active": "نشط",
+    "expired": "منتهٍ",
+    "suspended": "معلّق",
+    "cancelled": "ملغى",
+    "none": "بدون اشتراك"
+  },
+  "registrationStatus": {
+    "pending": "قيد الانتظار",
+    "info_requested": "بانتظار معلومات",
+    "approved": "مقبول",
+    "rejected": "مرفوض",
+    "all": "الكل"
+  },
+  "paymentMethods": {
+    "cash": "نقداً",
+    "bank_transfer": "تحويل بنكي",
+    "card": "بطاقة",
+    "mobile_wallet": "محفظة إلكترونية",
+    "other": "أخرى"
+  },
+  "subscriptionBanner": {
+    "readOnly": "اشتراكك غير نشط. مساحة العمل للقراءة فقط حتى التجديد — بياناتك محفوظة.",
+    "blocked": "اشتراكك غير نشط. يقتصر الوصول على صفحة الفوترة حتى التجديد — بياناتك محفوظة.",
+    "endingSoon": "ينتهي اشتراكك خلال {{count}} يوم.",
+    "pending": "اشتراكك بانتظار التفعيل.",
+    "viewBilling": "عرض الفوترة",
+    "blockedTitle": "الاشتراك غير نشط",
+    "blockedBody": "مساحة العمل متوقفة مؤقتاً حتى تجديد الاشتراك. لم يُحذف أي شيء."
+  },
+  "notifications": {
+    "subscription_expiring": "ينتهي اشتراكك خلال {{count}} يوم ({{date}}).",
+    "subscription_expired": "انتهى اشتراكك في {{date}}. بياناتك محفوظة."
+  },
+  "plans": {
+    "title": "الخطط",
+    "subtitle": "حدّد ما يتضمنه كل اشتراك. تحتفظ الاشتراكات الحالية بسعرها عند تعديل الخطة.",
+    "create": "خطة جديدة",
+    "edit": "تعديل الخطة",
+    "name": "اسم الخطة",
+    "interval": "فترة الفوترة",
+    "intervals": {
+      "month": "شهرية",
+      "year": "سنوية",
+      "custom": "مخصّصة (بالأيام)"
+    },
+    "durationDays": "المدة (بالأيام)",
+    "trialDays": "أيام التجربة",
+    "maxEmployees": "مقاعد الفريق",
+    "maxChannels": "قنوات المراسلة",
+    "emptyUnlimited": "اتركه فارغاً لعدد غير محدود",
+    "features": "المزايا",
+    "featuresHint": "تُفعَّل المزايا مع إطلاق كل وحدة.",
+    "active": "متاحة للاشتراكات الجديدة",
+    "public": "عرضها في صفحة التسجيل",
+    "activeShort": "نشطة",
+    "inactive": "غير نشطة",
+    "private": "مخفية",
+    "editHint": "تغيير السعر يُطبَّق على الاشتراكات الجديدة فقط.",
+    "addTemplates": "إضافة الأساسية والاحترافية والأعمال",
+    "templatesCreated": "تم إنشاء {{count}} خطة كمسودة — حدّد الأسعار ثم فعّلها.",
+    "emptyTitle": "لا توجد خطط بعد",
+    "emptyBody": "أنشئ خطتك الأولى، أو أضف مسودات الخطط الأساسية والاحترافية والأعمال ثم عدّلها.",
+    "per": {
+      "month": "شهر",
+      "year": "سنة",
+      "custom": "{{days}} يوم"
+    },
+    "unit": {
+      "month": "شهر",
+      "year": "سنة",
+      "custom": "فترة"
+    },
+    "seats": "حتى {{count}} أعضاء في الفريق",
+    "unlimitedSeats": "عدد غير محدود من الأعضاء",
+    "channels": "{{count}} قنوات مراسلة",
+    "unlimitedChannels": "قنوات غير محدودة",
+    "unlimited": "غير محدود",
+    "trial": "تجربة مجانية {{count}} يوم",
+    "usedBy": "تستخدمها {{count}} شركة",
+    "deleteTitle": "حذف الخطة «{{name}}»؟"
+  },
+  "planFeatures": {
+    "reports.advanced": "تقارير متقدمة",
+    "export.excel": "تصدير Excel",
+    "automation": "الأتمتة والمتابعات",
+    "ai.assistant": "المساعد الذكي",
+    "api.access": "الوصول عبر API",
+    "branding.custom": "هوية مخصّصة للشركة"
+  },
+  "admin": {
+    "overviewTitle": "مرحباً، {{name}}",
+    "overviewSubtitle": "كل ما يحدث على المنصة.",
+    "recentCompanies": "أحدث الشركات",
+    "viewAll": "عرض الكل",
+    "stats": {
+      "companies": "الشركات",
+      "companiesBreakdown": "{{active}} نشطة · {{pending}} قيد الانتظار · {{suspended}} معلّقة",
+      "activeCompanies": "الشركات النشطة",
+      "suspended": "المعلّقة",
+      "pendingRegistrations": "طلبات التسجيل",
+      "activeSubscriptions": "الاشتراكات النشطة",
+      "trials": "{{count}} في فترة التجربة",
+      "expiringSoon": "تنتهي خلال 7 أيام",
+      "expired": "{{count}} منتهية",
+      "users": "المستخدمون",
+      "employees": "{{count}} عضوية نشطة",
+      "channels": "القنوات المتصلة",
+      "channelsLater": "تتوفر مع قنوات المراسلة",
+      "mrr": "الإيراد الشهري المتكرر",
+      "mrrHint": "الاشتراكات المدفوعة النشطة محوّلة إلى قيمة شهرية، لكل عملة على حدة.",
+      "noRevenue": "لا توجد اشتراكات مدفوعة نشطة بعد."
+    },
+    "companiesSubtitle": "أنشئ الشركات وراجعها وأدرها على المنصة.",
+    "searchCompanies": "ابحث بالاسم أو البريد أو العنوان…",
+    "allStatuses": "كل الحالات",
+    "allSubscriptions": "كل الاشتراكات",
+    "allPlans": "كل الخطط",
+    "noCompaniesMatch": "لا توجد شركات مطابقة لهذه الفلاتر.",
+    "newCompany": "شركة جديدة",
+    "createCompany": "إنشاء الشركة",
+    "companyCreated": "تم إنشاء الشركة",
+    "ownerInviteHint": "يتلقى المالك دعوة لمرة واحدة ليختار كلمة مروره بنفسه. لا تُنشئ المنصة أي كلمة مرور.",
+    "subscription": "الاشتراك",
+    "noPlanYet": "بدون خطة حالياً",
+    "periods": "عدد ({{unit}})",
+    "startTrial": "البدء بفترة تجربة {{count}} يوم",
+    "ownerInvitation": "دعوة المالك",
+    "ownerResetLink": "رابط إعادة تعيين كلمة مرور المالك",
+    "ownerLink": "رابط دخول المالك",
+    "activate": "تفعيل",
+    "activated": "تم تفعيل الشركة",
+    "suspend": "تعليق",
+    "suspended": "تم تعليق الشركة",
+    "reactivate": "إعادة التفعيل",
+    "reactivated": "تمت إعادة تفعيل الشركة",
+    "suspendTitle": "تعليق {{name}}؟",
+    "suspendBody": "يُسجَّل خروج الأعضاء فوراً ولا يمكنهم الوصول إلى مساحة العمل. تبقى كل البيانات محفوظة ويمكن إعادة التفعيل في أي وقت.",
+    "suspendReason": "السبب (داخلي)",
+    "suspendedNotice": "معلّقة منذ {{date}} — {{reason}}",
+    "tabs": {
+      "subscription": "الاشتراك والمدفوعات",
+      "profile": "الملف",
+      "members": "الأعضاء",
+      "activity": "النشاط"
+    },
+    "noSubscription": "لا يوجد اشتراك لهذه الشركة. عيّن خطة أدناه.",
+    "assignPlan": "تعيين خطة",
+    "changePlan": "تغيير الخطة",
+    "changeStatus": "تغيير الحالة",
+    "recordPayment": "تسجيل دفعة",
+    "confirmPayment": "تأكيد الدفعة",
+    "paymentRecorded": "تم تسجيل الدفعة",
+    "extendOne": "+1 {{unit}}",
+    "extended": "تم تمديد الاشتراك",
+    "subscriptionSaved": "تم حفظ الاشتراك",
+    "createPlansFirst": "أنشئ خطة أولاً:",
+    "startsAt": "تاريخ البدء",
+    "defaultToday": "اليوم افتراضياً",
+    "endsAt": "تاريخ الانتهاء",
+    "endsAtOptional": "تاريخ الانتهاء (اختياري)",
+    "customPrice": "سعر مخصّص (اختياري)",
+    "notes": "ملاحظات",
+    "internalNotes": "ملاحظات داخلية",
+    "daysLeft": "متبقٍ {{count}} يوم",
+    "extendWithPayment": "تمديد الاشتراك بمقدار",
+    "dataPreserved": "لا تُحذف بيانات الشركة أبداً عند انتهاء الاشتراك أو تعليقه أو إلغائه.",
+    "access": {
+      "read_only": "للقراءة فقط",
+      "blocked": "الوصول محظور"
+    },
+    "registrationsTitle": "طلبات التسجيل",
+    "registrationsSubtitle": "الشركات التي سجّلت من صفحة التسجيل.",
+    "noRegistrations": "لا توجد طلبات في هذه القائمة.",
+    "submitted": "تاريخ الإرسال",
+    "lastMessage": "آخر رسالة لمقدّم الطلب",
+    "reviewTab": {
+      "approve": "قبول",
+      "info": "طلب معلومات",
+      "reject": "رفض"
+    },
+    "reviewAction": {
+      "approve": "قبول وإنشاء الشركة",
+      "info": "إرسال الطلب",
+      "reject": "رفض الطلب"
+    },
+    "companyStatusAfter": "حالة الشركة بعد القبول",
+    "approveHint": "ينشئ القبول الشركة وأدوارها واشتراكها ودعوة للمالك.",
+    "rejectMessage": "رسالة إلى مقدّم الطلب",
+    "infoMessage": "ما المعلومات المطلوبة؟",
+    "messageHint": "تُرسل بالبريد إلى مقدّم الطلب عند ضبط البريد الإلكتروني.",
+    "registrationApproved": "تم قبول الطلب",
+    "registrationRejected": "تم رفض الطلب",
+    "infoRequested": "تم طلب معلومات إضافية"
   }
 }

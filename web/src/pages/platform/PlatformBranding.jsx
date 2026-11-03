@@ -97,6 +97,22 @@ function Editor({ initial }) {
             <LocalizedInputs label={t('platform.heading')} value={form.registrationHeading} onChange={set('registrationHeading')} />
             <LocalizedInputs label={t('platform.subheading')} value={form.registrationSubheading} onChange={set('registrationSubheading')} multiline />
           </Card>
+          <Card title={t('platform.policies')}>
+            <fieldset className="stack">
+              <legend className="label">{t('platform.expiredPolicy')}</legend>
+              {['read_only', 'block'].map(p => (
+                <label key={p} className="check">
+                  <input type="radio" name="expiredPolicy" checked={form.expiredAccessPolicy === p} onChange={() => set('expiredAccessPolicy')(p)} />
+                  <span><strong>{t(`platform.policy.${p}`)}</strong><small className="hint">{t(`platform.policyHint.${p}`)}</small></span>
+                </label>
+              ))}
+              <small className="hint">{t('admin.dataPreserved')}</small>
+            </fieldset>
+            <label className="check">
+              <input type="checkbox" checked={Boolean(form.registrationEnabled)} onChange={e => set('registrationEnabled')(e.target.checked)} />
+              <span><strong>{t('platform.registrationEnabled')}</strong><small className="hint">{t('platform.registrationEnabledHint')}</small></span>
+            </label>
+          </Card>
           <Card title={t('platform.contact')}>
             <div className="form-grid">
               <Field label={t('platform.supportEmail')} error={fieldError(t, error, 'supportEmail')}>{id => <input id={id} type="email" dir="ltr" value={form.supportEmail || ''} onChange={setE('supportEmail')} />}</Field>

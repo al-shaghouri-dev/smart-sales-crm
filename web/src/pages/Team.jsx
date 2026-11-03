@@ -1,18 +1,18 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { KeyRound, Pencil, Trash2, UserPlus, Users } from 'lucide-react';
+import { KeyRound, Link2, Pencil, Trash2, UserPlus, Users } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { api } from '../lib/api';
 import { errorMessage } from '../lib/i18n';
 import { roleLabel } from '../components/Layout';
-import { Badge, Button, ConfirmDialog, EmptyState, ErrorState, Field, IconButton, Modal, PageHeader, Spinner, fieldError, useLoader, useToast } from '../components/ui';
+import { Badge, Button, ConfirmDialog, EmptyState, ErrorState, Field, IconButton, LinkDialog, Modal, PageHeader, Spinner, fieldError, useLoader, useToast } from '../components/ui';
 
 function formatDate(value, locale) {
   if (!value) return null;
   return new Intl.DateTimeFormat(locale === 'ar' ? 'ar' : 'en', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
 }
 
-function MemberModal({ member, roles, onClose, onSaved }) {
+function MemberModal({ member, roles, onClose, onSaved, onInvited }) {
   const { t } = useTranslation();
   const toast = useToast();
   const { me } = useApp();
@@ -22,6 +22,7 @@ function MemberModal({ member, roles, onClose, onSaved }) {
     name: member?.name || '', email: member?.email || '', phone: member?.phone || '', jobTitle: member?.jobTitle || '',
     roleId: member?.roleId || roles.find(r => r.key === 'employee')?.id || roles[0]?.id, status: member?.status || 'active', password: ''
   });
+  const [mode, setMode] = useState('invite');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const set = key => e => setForm(f => ({ ...f, [key]: e.target.value }));
@@ -39,8 +40,11 @@ function MemberModal({ member, roles, onClose, onSaved }) {
         await api.patch(`/api/team/${member.id}`, body);
         toast.success(t('team.updated'));
       } else {
-        await api.post('/api/team', form);
-        toast.success(t('team.added'));
+        const body = { ...form };
+        if (mode === 'invite') delete body.password;
+        const res = await api.post('/api/team', body);
+        toast.success(mode === 'invite' ? t('team.invited') : t('team.added'));
+        if (mode === 'invite') onInvited(res);
       }
       onSaved();
       onClose();
@@ -84,7 +88,17 @@ function MemberModal({ member, roles, onClose, onSaved }) {
           )}
         </Field>
         {!isEdit && (
-          <Field label={t('team.password')} hint={t('team.passwordHint')} error={fieldError(t, error, 'password')} full>
+          <div className="field full">
+            <span className="label">{t('team.accessSetup')}</span>
+            <div className="segmented" role="radiogroup">
+              <label className={mode === 'invite' ? 'active' : ''}><input type="radio" checked={mode === 'invite'} onChange={() => setMode('invite')} />{t('team.sendInvite')}</label>
+              <label className={mode === 'password' ? 'active' : ''}><input type="radio" checked={mode === 'password'} onChange={() => setMode('password')} />{t('team.setPassword')}</label>
+            </div>
+            <small className="hint">{mode === 'invite' ? t('team.inviteHint') : t('team.passwordHint')}</small>
+          </div>
+        )}
+        {!isEdit && mode === 'password' && (
+          <Field label={t('team.password')} error={fieldError(t, error, 'password')} full>
             {id => <input id={id} type="password" dir="ltr" autoComplete="new-password" minLength={8} required value={form.password} onChange={set('password')} />}
           </Field>
         )}
@@ -162,7 +176,7 @@ export default function Team() {
                       <div className="person">
                         <span className="avatar sm" aria-hidden>{(m.name || '?')[0]}</span>
                         <div>
-                          <strong>{m.name}</strong>{m.userId === me.user.id && <Badge>{t('team.you')}</Badge>}
+                          <strong>{m.name}</strong>{m.userId === me.user.id && <Badge>{t('team.you')}</Badge>}{m.invitationPending && <Badge tone="warning">{t('team.invitationPending')}</Badge>}
                           <div className="muted small" dir="ltr">{m.email}</div>
                         </div>
                       </div>
@@ -174,7 +188,11 @@ export default function Team() {
                       <td className="actions-col">
                         <div className="row-actions">
                           <IconButton label={t('common.edit')} onClick={() => setModal({ type: 'edit', member: m })}><Pencil size={16} /></IconButton>
-                          {m.userId !== me.user.id && <IconButton label={t('team.resetPassword')} onClick={() => setModal({ type: 'password', member: m })}><KeyRound size={16} /></IconButton>}
+                          {m.userId !== me.user.id && <IconButton label={m.invitationPending ? t('team.resendInvite') : t('team.sendResetLink')} onClick={async () => {
+                            try { const r = await api.post(`/api/team/${m.id}/link`); setModal({ type: 'link', result: r, title: m.invitationPending ? t('team.resendInvite') : t('team.sendResetLink') }); }
+                            catch (err) { toast.error(errorMessage(t, err)); }
+                          }}><Link2 size={16} /></IconButton>}
+                          {m.userId !== me.user.id && !m.invitationPending && <IconButton label={t('team.resetPassword')} onClick={() => setModal({ type: 'password', member: m })}><KeyRound size={16} /></IconButton>}
                           {m.userId !== me.user.id && <IconButton label={t('common.remove')} onClick={() => setModal({ type: 'remove', member: m })}><Trash2 size={16} /></IconButton>}
                         </div>
                       </td>
@@ -187,7 +205,8 @@ export default function Team() {
         )}
       </div>
 
-      {modal?.type === 'add' && <MemberModal roles={data.roles} onClose={() => setModal(null)} onSaved={reload} />}
+      {modal?.type === 'add' && <MemberModal roles={data.roles} onClose={() => setModal(m => (m?.type === 'add' ? null : m))} onSaved={reload} onInvited={r => setModal({ type: 'link', result: r, title: t('team.invitationLink') })} />}
+      {modal?.type === 'link' && <LinkDialog result={modal.result} title={modal.title} onClose={() => setModal(null)} />}
       {modal?.type === 'edit' && <MemberModal member={modal.member} roles={data.roles} onClose={() => setModal(null)} onSaved={reload} />}
       {modal?.type === 'password' && <PasswordModal member={modal.member} onClose={() => setModal(null)} />}
       {modal?.type === 'remove' && (

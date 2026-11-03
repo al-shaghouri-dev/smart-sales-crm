@@ -79,6 +79,25 @@ describe('translations', () => {
     assert.deepEqual(missing, []);
   });
 
+  test('dynamically built keys (statuses, methods, intervals, features) exist in both languages', () => {
+    const { PLAN_FEATURES } = require('../../server/permissions.js');
+    const families = {
+      subscriptionStatus: ['pending', 'active', 'expired', 'suspended', 'cancelled', 'none'],
+      registrationStatus: ['pending', 'info_requested', 'approved', 'rejected', 'all'],
+      paymentMethods: ['cash', 'bank_transfer', 'card', 'mobile_wallet', 'other'],
+      'plans.intervals': ['month', 'year', 'custom'], 'plans.per': ['month', 'year', 'custom'], 'plans.unit': ['month', 'year', 'custom'],
+      planFeatures: PLAN_FEATURES, 'platform.status': ['active', 'pending', 'suspended'],
+      'platform.policy': ['read_only', 'block'], 'platform.policyHint': ['read_only', 'block'], 'admin.access': ['read_only', 'blocked'],
+      'admin.tabs': ['subscription', 'profile', 'members', 'activity'], 'admin.reviewTab': ['approve', 'info', 'reject'],
+      'admin.reviewAction': ['approve', 'info', 'reject'], notifications: ['subscription_expiring', 'subscription_expired'],
+      'audit.actions': ['platform.logo_uploaded', 'platform.favicon_uploaded']
+    };
+    const get = (dict, path) => path.split('.').reduce((o, k) => o?.[k], dict);
+    const missing = [];
+    for (const [base, keys] of Object.entries(families)) for (const k of keys) for (const [dict, n] of [[en, 'en'], [ar, 'ar']]) if (!get(dict, base)?.[k]) missing.push(`${n}:${base}.${k}`);
+    assert.deepEqual(missing, []);
+  });
+
   test('every permission, role and server error code has a label', () => {
     const { PERMISSIONS, SYSTEM_ROLES } = require('../../server/permissions.js');
     for (const dict of [en, ar]) {

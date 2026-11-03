@@ -8,6 +8,7 @@ const { createApp } = require('../../server/app');
 const { createDb } = require('../../server/db');
 const { createCompany } = require('../../server/services/companies');
 const { hashPassword } = require('../../server/security/passwords');
+const { createMailer } = require('../../server/services/mailer');
 
 /*
  * Integration tests need two connection strings to the same throwaway database:
@@ -32,10 +33,10 @@ async function setupDatabase() {
 }
 
 async function resetDatabase() {
-  await owner.raw('TRUNCATE audit_logs, sessions, company_memberships, role_permissions, roles, company_settings, company_branding, companies, users RESTART IDENTITY CASCADE');
+  await owner.raw('TRUNCATE notifications, auth_tokens, payments, subscriptions, registration_requests, plans, audit_logs, sessions, company_memberships, role_permissions, roles, company_settings, company_branding, companies, users RESTART IDENTITY CASCADE');
   await owner.transaction(async trx => {
     await trx.raw("SELECT set_config('app.platform_admin', 'on', true)");
-    await trx('platform_settings').where({ id: 1 }).update({ app_name: 'Smart Sales CRM', logo_url: null, primary_color: '#4f46e5' });
+    await trx('platform_settings').where({ id: 1 }).update({ app_name: 'Smart Sales CRM', logo_url: null, primary_color: '#4f46e5', expired_access_policy: 'read_only', registration_enabled: true });
   });
 }
 
@@ -44,9 +45,15 @@ async function teardown() {
   await owner?.destroy();
 }
 
+/** extra.mail: 'none' (default) or 'memory' (captures sent emails in app.locals.mailer.outbox). */
 function makeApp(extra = {}) {
   const uploadsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sscrm-up-'));
-  return createApp({ env: 'test', isProd: false, uploadsDir, sessionTtlHours: 1, loginRateLimit: extra.loginRateLimit || 1000, databaseUrl: APP_URL }, { db, apiRateLimit: 100000 });
+  const config = {
+    env: 'test', isProd: false, uploadsDir, sessionTtlHours: 1, platformSessionTtlHours: 1, appUrl: 'https://app.example.test',
+    loginRateLimit: extra.loginRateLimit || 1000, recoveryRateLimit: extra.recoveryRateLimit || 1000, tokenRateLimit: 1000,
+    registrationRateLimit: extra.registrationRateLimit || 1000, databaseUrl: APP_URL, mail: { driver: extra.mail || 'none' }
+  };
+  return createApp(config, { db, apiRateLimit: 100000, mailer: createMailer({ driver: extra.mail || 'none' }) });
 }
 
 async function createCompanyFixture(name, ownerEmail, opts = {}) {
@@ -75,15 +82,17 @@ async function createPlatformAdmin(email) {
   return id;
 }
 
-async function login(app, email, password = PASSWORD) {
+async function login(app, email, password = PASSWORD, endpoint = '/api/auth/login') {
   const agent = request.agent(app);
-  const res = await agent.post('/api/auth/login').send({ email, password });
+  const res = await agent.post(endpoint).send({ email, password });
   if (res.status !== 200) throw new Error(`login failed for ${email}: ${res.status} ${JSON.stringify(res.body)}`);
   const me = await agent.get('/api/auth/me');
   return { agent, csrf: me.body.csrfToken, me: me.body };
 }
 
+const platformLogin = (app, email, password = PASSWORD) => login(app, email, password, '/api/auth/platform-login');
+
 module.exports = {
-  enabled, PASSWORD, setupDatabase, resetDatabase, teardown, makeApp, createCompanyFixture, addMember, createPlatformAdmin, login,
+  enabled, PASSWORD, platformLogin, setupDatabase, resetDatabase, teardown, makeApp, createCompanyFixture, addMember, createPlatformAdmin, login,
   getDb: () => db, getOwner: () => owner
 };

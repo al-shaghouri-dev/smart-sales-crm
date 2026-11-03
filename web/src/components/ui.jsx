@@ -199,3 +199,47 @@ export function ImageUpload({ url, onUpload, onRemove, accept = 'image/png,image
 
 /** Field-level error for a given field name from an ApiError with details.field. */
 export const fieldError = (t, error, field) => (error?.details?.field === field ? errorMessage(t, error) : null);
+
+/**
+ * Shows a one-time invitation / reset link (only when it could not be emailed).
+ * The link is never stored client-side and cannot be retrieved again.
+ */
+export function LinkDialog({ result, title, onClose }) {
+  const { t } = useTranslation();
+  const [copied, setCopied] = useState(false);
+  const link = result?.link;
+  return (
+    <Modal title={title} onClose={onClose} footer={<Button variant="primary" onClick={onClose}>{t('common.close')}</Button>}>
+      {result?.emailSent ? (
+        <div className="alert alert-success"><CheckCircle2 size={16} aria-hidden />{t('links.emailSent')}</div>
+      ) : link ? (
+        <>
+          <p className="muted">{t('links.shareOnce')}</p>
+          <div className="copy-row">
+            <input readOnly dir="ltr" value={link} onFocus={e => e.target.select()} aria-label={t('links.link')} />
+            <Button onClick={async () => { try { await navigator.clipboard.writeText(link); setCopied(true); } catch { /* clipboard blocked */ } }}>
+              {copied ? t('links.copied') : t('links.copy')}
+            </Button>
+          </div>
+          <small className="hint">{t('links.expiry')}</small>
+        </>
+      ) : <p className="muted">{t('links.none')}</p>}
+    </Modal>
+  );
+}
+
+/** Format helpers shared by billing & admin pages. */
+export const fmtDate = (value, locale, opts = { dateStyle: 'medium' }) =>
+  value ? new Intl.DateTimeFormat(locale === 'ar' ? 'ar' : 'en', opts).format(new Date(value)) : '—';
+export const fmtMoney = (amount, currency, locale) => {
+  try { return new Intl.NumberFormat(locale === 'ar' ? 'ar' : 'en', { style: 'currency', currency }).format(amount); }
+  catch { return `${amount} ${currency}`; }
+};
+export const localized = (value, locale) => (value && (value[locale] || value.en || value.ar)) || '';
+
+/** IANA time zones for selects. Some engines omit "UTC" from supportedValuesOf, so it is always listed first. */
+export const TIMEZONES = (() => {
+  let zones = [];
+  try { zones = Intl.supportedValuesOf('timeZone'); } catch { /* old browsers */ }
+  return ['UTC', ...zones.filter(z => z !== 'UTC')];
+})();

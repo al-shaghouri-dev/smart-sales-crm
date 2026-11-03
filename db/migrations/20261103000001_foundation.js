@@ -5,7 +5,16 @@
  * Run migrations as the schema OWNER role. The application must connect as a separate
  * role (APP_DB_ROLE) that has NOBYPASSRLS; FORCE ROW LEVEL SECURITY also binds the owner.
  */
-const { PERMISSIONS } = require('../../server/permissions');
+// Frozen copy of the permission catalog at the time of this migration. Never import live code into
+// migrations: later permissions are added by their own migrations (e.g. billing.view in phase 2).
+const PERMISSIONS = [
+  ['company.settings.view', 'company'], ['company.settings.manage', 'company'], ['company.branding.manage', 'company'],
+  ['users.view', 'team'], ['users.manage', 'team'], ['roles.manage', 'team'], ['shifts.manage', 'team'],
+  ['conversations.view_all', 'conversations'], ['conversations.view_assigned', 'conversations'], ['conversations.reply', 'conversations'],
+  ['conversations.assign', 'conversations'], ['customers.view', 'customers'], ['customers.manage', 'customers'], ['customers.export', 'customers'],
+  ['orders.view', 'orders'], ['orders.manage', 'orders'], ['orders.export', 'orders'], ['reports.view', 'reports'],
+  ['reports.financial', 'reports'], ['channels.manage', 'channels'], ['audit.view', 'security']
+].map(([key, category]) => ({ key, category }));
 
 const TENANT_TABLES = ['company_settings', 'company_branding', 'roles', 'role_permissions', 'company_memberships'];
 
