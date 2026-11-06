@@ -287,9 +287,15 @@ For a **testing** environment only (never for customers):
 | Backend (API, Socket.IO, webhooks, jobs) | Render free web service | **Sleeps after ~15 min idle**; the first request takes ~30–60 s; background jobs (sweepers, token refresh, subscription checks) do not run while asleep. No shell, no persistent disk. |
 | PostgreSQL | Neon free | Use the **direct** (non-pooled) connection string as `DATABASE_MIGRATION_URL`; the restricted app role is created automatically by `prepare-database.js`. |
 
+`render.free.yaml` contains all of the settings below (Render → New → Blueprint → Blueprint file path
+`render.free.yaml`). Generate the encryption key on your own computer and keep a copy:
+
+- macOS/Linux: `openssl rand -base64 32`
+- Windows PowerShell: `$b = New-Object byte[] 32; [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($b); [Convert]::ToBase64String($b)`
+
 Settings on Render (`plan: free`, build `npm ci --include=dev && npm run build`, start `npm run start:render`):
 `NODE_ENV=production`, `PROCESS_ROLE=all`, `TRUST_PROXY=2` (Vercel + Render), `DATABASE_MIGRATION_URL` (Neon direct URL),
-`APP_DB_ROLE=sscrm_app`, `APP_DB_PASSWORD` (random), `APP_ENCRYPTION_KEYS` / `APP_ENCRYPTION_PRIMARY_KEY_ID`,
+`APP_DB_ROLE=sscrm_app`, `APP_DB_PASSWORD` (random), `APP_ENCRYPTION_KEY` (one base64 key, used as key id `k1`),
 `WEBHOOK_SECRET_KEY` (random), `APP_URL` and `PUBLIC_URL` = the **Vercel** URL, `CHANNEL_PROVIDERS=telegram`,
 `UPLOADS_DIR=/tmp/sscrm/uploads`, `MEDIA_DIR=/tmp/sscrm/media`, and for the first start only
 `BOOTSTRAP_ADMIN_EMAIL` / `BOOTSTRAP_ADMIN_PASSWORD` (creates the first Super Admin when none exists; remove them after signing in).

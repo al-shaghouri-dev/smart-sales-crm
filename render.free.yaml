@@ -1,0 +1,50 @@
+# Render Blueprint — FREE testing setup (Vercel frontend + Render free backend + Neon free PostgreSQL).
+# Use: Render dashboard → New → Blueprint → this repository → Blueprint file path: render.free.yaml
+# Limitations (testing only): the service sleeps after ~15 min idle (first request ~30–60 s), background
+# jobs pause while asleep, and files are stored under /tmp (lost on restart/redeploy). See DEPLOYMENT.md §11.
+services:
+  - type: web
+    name: smart-sales-crm-api
+    runtime: node
+    plan: free
+    region: frankfurt
+    branch: saas/phase-0-1-clean
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm run start:render
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: "22.12.0"
+      - key: PROCESS_ROLE
+        value: all
+      - key: TRUST_PROXY
+        value: "2"                 # Vercel rewrite + Render load balancer
+      - key: DATABASE_MIGRATION_URL
+        sync: false                # Neon DIRECT connection string (not the "-pooler" one)
+      - key: APP_DB_ROLE
+        value: sscrm_app
+      - key: APP_DB_PASSWORD
+        generateValue: true
+      - key: APP_ENCRYPTION_KEY
+        sync: false                # 32 random bytes, base64 (see DEPLOYMENT.md §11); keep a copy
+      - key: WEBHOOK_SECRET_KEY
+        generateValue: true
+      - key: APP_URL
+        sync: false                # the Vercel URL, e.g. https://smart-sales-crm.vercel.app (add after Vercel deploy)
+      - key: PUBLIC_URL
+        sync: false                # same Vercel URL
+      - key: CHANNEL_PROVIDERS
+        value: telegram
+      - key: UPLOADS_DIR
+        value: /tmp/sscrm/uploads
+      - key: MEDIA_DRIVER
+        value: local
+      - key: MEDIA_DIR
+        value: /tmp/sscrm/media
+      - key: BOOTSTRAP_ADMIN_EMAIL
+        sync: false                # first Super Admin (only created when none exists); remove after first sign-in
+      - key: BOOTSTRAP_ADMIN_PASSWORD
+        sync: false                # 12+ characters; change it after the first sign-in, then remove this variable
