@@ -51,7 +51,7 @@ async function buildMe(db, req) {
       user,
       company,
       companyAccess: req.company ? 'active' : (req.companyRecord ? (req.membership?.status === 'inactive' ? 'membership_inactive' : req.companyRecord.status) : 'none'),
-      membership: req.company && req.membership ? { roleId: req.membership.role_id, roleKey: req.membership.role_key, roleName: req.membership.role_name, isOwner: req.membership.is_owner } : null,
+      membership: req.company && req.membership ? { id: req.membership.id, roleId: req.membership.role_id, roleKey: req.membership.role_key, roleName: req.membership.role_name, isOwner: req.membership.is_owner } : null,
       permissions: [...req.permissions],
       companies: companies.map(c => ({ id: c.id, name: c.name, status: c.status, membershipStatus: c.membership_status })),
       subscription,

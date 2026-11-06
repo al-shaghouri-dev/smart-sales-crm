@@ -40,3 +40,23 @@ export function onRealtime(event, handler) {
   socket?.on(event, handler);
   return () => { listeners.get(event)?.delete(handler); socket?.off(event, handler); };
 }
+
+/**
+ * Follow one resource (e.g. a conversation). The server authorises every request and assigns the
+ * room; subscriptions are renewed after a reconnect. Returns an unsubscribe function.
+ */
+const resources = new Map();
+function sendSubscribe(key) {
+  const [room, id] = key.split(':');
+  socket?.emit('subscribe', { room, id }, () => {});
+}
+export function followResource(room, id) {
+  const key = `${room}:${id}`;
+  resources.set(key, (resources.get(key) || 0) + 1);
+  if (socket?.connected) sendSubscribe(key);
+  return () => {
+    const n = (resources.get(key) || 1) - 1;
+    if (n <= 0) resources.delete(key); else resources.set(key, n);
+  };
+}
+onRealtime('connect', () => { for (const key of resources.keys()) sendSubscribe(key); });

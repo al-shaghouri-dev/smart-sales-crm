@@ -140,7 +140,7 @@ function decryptSecret(payload, base64Key) {
  * `contextFor(row)` must return the same context used when the value was written.
  * Runs inside the caller's transaction/security context. Returns counts.
  */
-async function reencryptColumn(trx, ring, { table, idColumn = 'id', column, contextFor, batchSize = 200 }) {
+async function reencryptColumn(trx, ring, { table, idColumn = 'id', column, keyIdColumn = null, contextFor, batchSize = 200 }) {
   let rotated = 0, scanned = 0, lastId = null;
   for (;;) {
     const q = trx(table).select('*').whereNotNull(column).orderBy(idColumn).limit(batchSize);
@@ -152,7 +152,7 @@ async function reencryptColumn(trx, ring, { table, idColumn = 'id', column, cont
       lastId = row[idColumn];
       if (!ring.needsRotation(row[column])) continue;
       const next = ring.rotate(row[column], contextFor(row));
-      await trx(table).where({ [idColumn]: row[idColumn] }).update({ [column]: next });
+      await trx(table).where({ [idColumn]: row[idColumn] }).update(keyIdColumn ? { [column]: next, [keyIdColumn]: ring.keyIdOf(next) } : { [column]: next });
       rotated++;
     }
   }

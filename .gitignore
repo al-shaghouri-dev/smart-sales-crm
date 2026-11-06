@@ -24,3 +24,7 @@ uploads/
 Thumbs.db
 .vscode/
 .idea/
+
+# Local work-in-progress archives and pause notes
+phase-*-wip.tar.gz
+PAUSE_REPORT_*.md

@@ -1,6 +1,7 @@
 const express = require('express');
 const v = require('../validate');
 const { PLAN_FEATURES } = require('../permissions');
+const { KNOWN_PROVIDERS } = require('../services/channels');
 const { badRequest, conflict, notFound } = require('../errors');
 const { audit } = require('../services/audit');
 
@@ -9,7 +10,7 @@ const CURRENCIES = ['USD', 'EUR', 'GBP', 'SAR', 'AED', 'EGP', 'KWD', 'QAR', 'BHD
 const out = p => ({
   id: p.id, key: p.key, name: p.name, description: p.description, interval: p.billing_interval, durationDays: p.duration_days,
   price: Number(p.price), currency: p.currency, trialDays: p.trial_days, maxEmployees: p.max_employees, maxChannels: p.max_channels,
-  features: p.features, isActive: p.is_active, isPublic: p.is_public, sort: p.sort, createdAt: p.created_at
+  features: p.features, allowedProviders: Array.isArray(p.allowed_providers) ? p.allowed_providers : null, isActive: p.is_active, isPublic: p.is_public, sort: p.sort, createdAt: p.created_at
 });
 
 /**
@@ -38,7 +39,14 @@ function parse(b, { partial }) {
     if (!Array.isArray(b.features) || b.features.some(f => !PLAN_FEATURES.includes(f))) throw badRequest('validation.invalid', 'Unknown feature', { field: 'features' });
     features = JSON.stringify([...new Set(b.features)]);
   }
+  let allowedProviders;
+  if (b.allowedProviders !== undefined) {
+    if (b.allowedProviders === null) allowedProviders = null;
+    else if (!Array.isArray(b.allowedProviders) || b.allowedProviders.some(x => !KNOWN_PROVIDERS.includes(x))) throw badRequest('validation.invalid', 'Unknown channel type', { field: 'allowedProviders' });
+    else allowedProviders = b.allowedProviders.length ? JSON.stringify([...new Set(b.allowedProviders)]) : null;
+  }
   return v.compact({
+    allowed_providers: allowedProviders,
     name: name ? JSON.stringify(name) : undefined,
     description: b.description !== undefined ? JSON.stringify(v.localized(b.description, { field: 'description', max: 300 })) : undefined,
     billing_interval: interval ?? undefined,
@@ -70,7 +78,7 @@ module.exports = function planRoutes({ db }) {
       const usage = await trx('subscriptions').groupBy('plan_id').select('plan_id').count('* as n');
       return plans.map(p => ({ ...out(p), companies: Number(usage.find(u => u.plan_id === p.id)?.n || 0) }));
     });
-    res.json({ plans: rows, features: PLAN_FEATURES, currencies: CURRENCIES });
+    res.json({ plans: rows, features: PLAN_FEATURES, currencies: CURRENCIES, providers: KNOWN_PROVIDERS });
   });
 
   router.post('/', async (req, res) => {

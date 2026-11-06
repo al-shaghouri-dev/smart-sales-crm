@@ -7,6 +7,7 @@ const { createProviderRegistry } = require('./channels/registry');
 const { createWebhookProcessor } = require('./webhooks/processor');
 const { createMailer } = require('./services/mailer');
 const { runSubscriptionMaintenance } = require('./services/subscriptions');
+const { conversationRoomAuthorizer } = require('./messaging/access');
 
 /**
  * Composes the application: HTTP + Socket.IO (web role) and background workers (worker role).
@@ -35,7 +36,9 @@ function createRuntime(config, options = {}) {
   server.keepAliveTimeout = 65000;
   const realtime = serveWeb && config.realtime.enabled ? createRealtime({ httpServer: server, db, config, logger }) : null;
   app.locals.realtime = realtime;
-  const processor = createWebhookProcessor({ db, config, providers, logger, realtime });
+  const messaging = app.locals.messaging;
+  const processor = createWebhookProcessor({ db, config, providers, logger, realtime, messaging });
+  if (realtime) realtime.registerRoom('conversation', conversationRoomAuthorizer(db));
 
   let state = 'created';
   let stopping = null;
@@ -57,6 +60,8 @@ function createRuntime(config, options = {}) {
     if (runWorkers) {
       await jobs.work('webhook.process', job => processor.process(job.data.eventId));
       await jobs.work('webhook.sweep', () => processor.sweep(jobs));
+      await jobs.work('message.send', job => messaging.sendQueued(job.data.messageId, job.data.companyId), { localConcurrency: config.messaging?.sendConcurrency || 4 });
+      await jobs.work('message.sweep', () => messaging.sweep());
       await jobs.work('webhook.cleanup', () => processor.cleanup());
       await jobs.work('subscription.maintenance', async () => {
         const platform = await db.withContext({}, trx => trx('platform_settings').where({ id: 1 }).first('app_name'));
@@ -96,7 +101,7 @@ function createRuntime(config, options = {}) {
     return stopping;
   }
 
-  return { app, server, db, jobs, realtime, providers, processor, start, stop, state: () => state };
+  return { app, server, db, jobs, realtime, providers, processor, messaging, start, stop, state: () => state };
 }
 
 module.exports = { createRuntime };

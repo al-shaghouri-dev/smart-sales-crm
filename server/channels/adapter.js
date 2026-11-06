@@ -23,7 +23,14 @@
  * Optional members
  *   handleVerification({ query, endpointKey }) → { status, body }   GET handshake (e.g. Meta hub.challenge)
  *   ackResponse() → { status, body }                                  custom 2xx acknowledgement
- *   connect / disconnect / refreshCredentials / healthCheck          (Phase 3.3+)
+ *   connectMode 'form' | 'oauth'    how the connect UI collects input; connectFields: [{ name, type, required }]
+ *   connect({ input, config, companyId }) → { displayName, externalAccountId, externalMeta?,
+ *        credentials (encrypted at rest), scopes?, expiresAt? }   validate input with the provider
+ *   afterConnect({ channel, credentials, config })   e.g. register the webhook (inside the DB transaction)
+ *   disconnect({ channel, credentials, config })     e.g. remove the webhook (best effort)
+ *   healthCheck({ channel, credentials, config }) → { ok, code? }
+ *   refreshCredentials({ channel, credentials, config }) → { credentials, expiresAt }   token refresh
+ *   capabilities.replyWindowHours   provider customer-service window enforced before queueing
  */
 
 class ProviderError extends Error {
@@ -52,7 +59,7 @@ function defineAdapter(def) {
   for (const fn of REQUIRED_FUNCTIONS) {
     if (typeof def[fn] !== 'function') throw new TypeError(`Adapter ${def.id} must implement ${fn}()`);
   }
-  for (const fn of ['handleVerification', 'ackResponse', 'connect', 'disconnect', 'refreshCredentials', 'healthCheck']) {
+  for (const fn of ['handleVerification', 'ackResponse', 'connect', 'afterConnect', 'disconnect', 'refreshCredentials', 'healthCheck', 'oauthStart', 'oauthCallback']) {
     if (def[fn] !== undefined && typeof def[fn] !== 'function') throw new TypeError(`Adapter ${def.id}.${fn} must be a function`);
   }
   return Object.freeze({ ...def });

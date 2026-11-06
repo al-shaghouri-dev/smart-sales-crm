@@ -14,6 +14,8 @@ import CompanySettings from './pages/CompanySettings';
 import Account from './pages/Account';
 import AuditLog from './pages/AuditLog';
 import Billing from './pages/Billing';
+import Inbox from './pages/Inbox';
+import Channels from './pages/Channels';
 import Blocked, { SubscriptionBlocked } from './pages/Blocked';
 import PlatformBranding from './pages/platform/PlatformBranding';
 import AdminOverview from './pages/platform/AdminOverview';
@@ -93,6 +95,8 @@ export default function App() {
       <Route path="/admin/*" element={<Navigate to="/" replace />} />
       <Route element={<Layout />}>
         <Route index element={workspace ? (blocked ? <SubscriptionBlocked /> : <Dashboard />) : <Blocked />} />
+        <Route path="inbox" element={page(can('conversations.view_all') || can('conversations.view_assigned'), <Inbox />)} />
+        <Route path="channels" element={page(can('channels.manage'), <Channels />)} />
         <Route path="team" element={page(can('users.view') || can('users.manage'), <Team />)} />
         <Route path="roles" element={page(can('roles.manage'), <Roles />)} />
         <Route path="settings" element={page(can('company.settings.view') || can('company.settings.manage') || can('company.branding.manage'), <CompanySettings />)} />

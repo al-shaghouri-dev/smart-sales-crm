@@ -14,7 +14,7 @@
 const MAX_ERROR = 300;
 const redact = text => String(text || '').replace(/[A-Za-z0-9_\-+/=]{24,}/g, '[redacted]').slice(0, MAX_ERROR);
 
-function createWebhookProcessor({ db, config, providers, logger = console, realtime = null }) {
+function createWebhookProcessor({ db, config, providers, logger = console, realtime = null, messaging = null }) {
   const maxAttempts = config.webhooks.maxAttempts;
 
   async function claim(eventId) {
@@ -46,7 +46,7 @@ function createWebhookProcessor({ db, config, providers, logger = console, realt
     }
 
     try {
-      const result = await adapter.processEvent(event, { db, logger, realtime, config });
+      const result = await adapter.processEvent(event, { db, logger, realtime, config, messaging });
       const status = result?.status === 'ignored' ? 'ignored' : 'processed';
       await finish(eventId, {
         status, last_error: result?.reason ? redact(result.reason) : null, processed_at: new Date(),

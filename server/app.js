@@ -6,6 +6,8 @@ const multer = require('multer');
 const { rateLimit } = require('express-rate-limit');
 const { createDb } = require('./db');
 const { createStorage } = require('./storage');
+const { createMediaStorage } = require('./media/storage');
+const { createMessaging } = require('./messaging');
 const { loadSession, enforceSubscription } = require('./middleware/session');
 const { createMailer } = require('./services/mailer');
 const { createDisabledJobs } = require('./jobs');
@@ -35,9 +37,11 @@ function createApp(config, options = {}) {
   // Jobs / providers are injected by the runtime (server/runtime.js); tests may omit them.
   const jobs = options.jobs || createDisabledJobs();
   const providers = options.providers || createProviderRegistry({ ...config, channelProviders: [] });
-  const deps = { db, config, storage, mailer, jobs, providers, onPolicyChange: subscriptionGuard.invalidate };
-
+  const media = options.media || createMediaStorage(config);
   const app = express();
+  const messaging = createMessaging({ db, config, media, providers, jobs, getRealtime: () => app.locals.realtime, logger: options.logger || console });
+  const deps = { db, config, storage, mailer, jobs, providers, media, messaging, onPolicyChange: subscriptionGuard.invalidate };
+
   app.disable('x-powered-by');
   app.set('trust proxy', config.trustProxy === true ? 1 : (config.trustProxy || false));
   app.use(helmet({
@@ -70,7 +74,7 @@ function createApp(config, options = {}) {
   });
 
   // Provider webhooks: raw bodies, mounted BEFORE the JSON parser (signatures need exact bytes).
-  app.use('/webhooks', createWebhookRouter({ db, config, providers, jobs }));
+  app.use('/webhooks', createWebhookRouter({ db, config, providers, jobs, messaging }));
 
   app.use(express.json({ limit: '1mb' }));
   // API responses (some carry one-time links) must never be stored by browsers or proxies.
@@ -79,7 +83,7 @@ function createApp(config, options = {}) {
   app.use('/uploads', express.static(config.uploadsDir, { dotfiles: 'deny', index: false, fallthrough: false }));
   app.use(loadSession(db));
   // Expired/suspended subscriptions: read-only or billing-only access to workspace APIs (never data deletion).
-  app.use(['/api/company', '/api/team', '/api/roles', '/api/audit', '/api/billing', '/api/notifications'], subscriptionGuard);
+  app.use(['/api/company', '/api/team', '/api/roles', '/api/audit', '/api/billing', '/api/notifications', '/api/conversations', '/api/channels'], subscriptionGuard);
 
   app.use('/api/public', require('./routes/platform').publicRoutes(deps));
   app.use('/api/public', require('./routes/platform-registrations').publicRegistrationRoutes(deps));
@@ -91,6 +95,8 @@ function createApp(config, options = {}) {
   app.use('/api/audit', require('./routes/audit')(deps));
   app.use('/api/billing', require('./routes/billing').billingRoutes(deps));
   app.use('/api/notifications', require('./routes/billing').notificationRoutes(deps));
+  app.use('/api/conversations', require('./routes/conversations')(deps));
+  app.use('/api/channels', require('./routes/channels')(deps));
   app.use('/api/platform', require('./routes/platform').platformRoutes(deps));
   app.use('/api', (_req, _res, next) => next(new AppError(404, 'common.not_found', 'Not found')));
 
@@ -106,7 +112,10 @@ function createApp(config, options = {}) {
       return res.status(error.status).json({ ok: false, code: error.code, error: error.message, details: error.details });
     }
     if (error.type === 'entity.parse.failed') return res.status(400).json({ ok: false, code: 'common.bad_request', error: 'Malformed JSON' });
-    if (error instanceof multer.MulterError) return res.status(400).json({ ok: false, code: 'upload.invalid_image', error: 'Invalid or too large file' });
+    if (error instanceof multer.MulterError) {
+      const code = error.field === 'file' ? (error.code === 'LIMIT_FILE_SIZE' ? 'media.too_large' : 'media.invalid') : 'upload.invalid_image';
+      return res.status(400).json({ ok: false, code, error: 'Invalid or too large file' });
+    }
     if (error.status === 404 || error.statusCode === 404) return res.status(404).json({ ok: false, code: 'common.not_found', error: 'Not found' });
     if (error.code === '42501') { // RLS / privilege violation — treat as forbidden, never leak details
       return res.status(403).json({ ok: false, code: 'auth.forbidden', error: 'Forbidden' });
@@ -117,6 +126,8 @@ function createApp(config, options = {}) {
   });
 
   app.locals.db = db;
+  app.locals.messaging = messaging;
+  app.locals.media = media;
   app.locals.mailer = mailer;
   return app;
 }

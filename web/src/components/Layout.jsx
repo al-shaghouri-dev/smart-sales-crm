@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { AlertTriangle, Building2, ClipboardList, CreditCard, Inbox, Layers, LayoutDashboard, LogOut, Menu, Palette, Settings, ShieldCheck, UserCircle, Users, X } from 'lucide-react';
+import { AlertTriangle, Building2, MessageSquare, Plug, ClipboardList, CreditCard, Inbox, Layers, LayoutDashboard, LogOut, Menu, Palette, Settings, ShieldCheck, UserCircle, Users, X } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { LanguageSwitcher, ThemeToggle } from './Preferences';
 import { IconButton } from './ui';
@@ -67,6 +67,8 @@ export default function Layout() {
 
   const workspaceItems = hasWorkspace ? [
     { to: '/', icon: LayoutDashboard, label: t('nav.dashboard'), end: true },
+    can('conversations.view_all') || can('conversations.view_assigned') ? { to: '/inbox', icon: MessageSquare, label: t('nav.inbox') } : null,
+    can('channels.manage') ? { to: '/channels', icon: Plug, label: t('nav.channels') } : null,
     can('users.view') || can('users.manage') ? { to: '/team', icon: Users, label: t('nav.team') } : null,
     can('roles.manage') ? { to: '/roles', icon: ShieldCheck, label: t('nav.roles') } : null,
     can('company.settings.view') || can('company.settings.manage') || can('company.branding.manage') ? { to: '/settings', icon: Settings, label: t('nav.companySettings') } : null,
@@ -139,7 +141,7 @@ export default function Layout() {
             </span>
           </div>
         </header>
-        <main className="content" id="main">
+        <main className={`content ${location.pathname.startsWith('/inbox') ? 'content-full' : ''}`} id="main">
           {hasWorkspace && <SubscriptionBanner />}
           <Outlet />
         </main>

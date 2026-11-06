@@ -9,6 +9,11 @@ const { createDb } = require('../../server/db');
 const { createCompany } = require('../../server/services/companies');
 const { hashPassword } = require('../../server/security/passwords');
 const { createMailer } = require('../../server/services/mailer');
+const { createKeyRing } = require('../../server/security/secrets');
+
+/** Test-only encryption keys (random per run; never used outside tests). */
+const TEST_KEY = crypto.randomBytes(32).toString('base64');
+const TEST_KEY_RING = createKeyRing({ keys: { t1: TEST_KEY }, primaryKeyId: 't1' });
 
 /*
  * Integration tests need two connection strings to the same throwaway database:
@@ -33,7 +38,7 @@ async function setupDatabase() {
 }
 
 async function resetDatabase() {
-  await owner.raw('TRUNCATE webhook_events, socket_io_attachments, notifications, auth_tokens, payments, subscriptions, registration_requests, plans, audit_logs, sessions, company_memberships, role_permissions, roles, company_settings, company_branding, companies, users RESTART IDENTITY CASCADE');
+  await owner.raw('TRUNCATE messages, conversation_assignments, conversations, contact_identities, contacts, channel_credentials, channels, webhook_events, socket_io_attachments, notifications, auth_tokens, payments, subscriptions, registration_requests, plans, audit_logs, sessions, company_memberships, role_permissions, roles, company_settings, company_branding, companies, users RESTART IDENTITY CASCADE');
   // pg-boss tables are owned by the application role (it installs them at start-up).
   await db.knex.raw(`DO $$ BEGIN IF to_regclass('pgboss.job') IS NOT NULL THEN DELETE FROM pgboss.job; END IF; END $$`);
   await owner.transaction(async trx => {
@@ -53,7 +58,9 @@ function makeApp(extra = {}) {
   const config = {
     env: 'test', isProd: false, uploadsDir, sessionTtlHours: 1, platformSessionTtlHours: 1, appUrl: 'https://app.example.test',
     loginRateLimit: extra.loginRateLimit || 1000, recoveryRateLimit: extra.recoveryRateLimit || 1000, tokenRateLimit: 1000,
-    registrationRateLimit: extra.registrationRateLimit || 1000, databaseUrl: APP_URL, mail: { driver: extra.mail || 'none' }
+    registrationRateLimit: extra.registrationRateLimit || 1000, databaseUrl: APP_URL, mail: { driver: extra.mail || 'none' },
+    keyRing: TEST_KEY_RING, messaging: { sendMaxAttempts: 3, sendRetryDelaySeconds: 0, maxMediaBytes: 1024 * 1024 },
+    channelProviders: extra.channelProviders || [], fakeProviderSecret: 'fake-test-secret'
   };
   return createApp(config, { db, apiRateLimit: 100000, mailer: createMailer({ driver: extra.mail || 'none' }) });
 }
@@ -105,10 +112,11 @@ function runtimeConfig(overrides = {}) {
     jobs: { schema: 'pgboss', pollingIntervalSeconds: 0.5, poolMax: 3 },
     realtime: { enabled: true, adapter: 'none', allowedOrigins: ['http://localhost'], revalidateSeconds: 3600 },
     webhooks: { bodyLimit: '64kb', maxAttempts: 3, retryDelaySeconds: 0, retentionDays: 30, rateLimitPerMinute: 100000 },
-    channelProviders: ['fake'], fakeProviderSecret: 'fake-test-secret'
+    channelProviders: ['fake'], fakeProviderSecret: 'fake-test-secret',
+    keyRing: TEST_KEY_RING, messaging: { sendMaxAttempts: 3, sendRetryDelaySeconds: 0, maxMediaBytes: 1024 * 1024 }
   };
   const merged = { ...base, ...overrides };
-  for (const k of ['jobs', 'realtime', 'webhooks']) merged[k] = { ...base[k], ...(overrides[k] || {}) };
+  for (const k of ['jobs', 'realtime', 'webhooks', 'messaging']) merged[k] = { ...base[k], ...(overrides[k] || {}) };
   return merged;
 }
 
@@ -120,6 +128,6 @@ async function sessionCookie(app, email, password = PASSWORD, endpoint = '/api/a
 }
 
 module.exports = {
-  enabled, PASSWORD, platformLogin, runtimeConfig, sessionCookie, setupDatabase, resetDatabase, teardown, makeApp, createCompanyFixture, addMember, createPlatformAdmin, login,
+  enabled, PASSWORD, TEST_KEY_RING, TEST_KEY, platformLogin, runtimeConfig, sessionCookie, setupDatabase, resetDatabase, teardown, makeApp, createCompanyFixture, addMember, createPlatformAdmin, login,
   getDb: () => db, getOwner: () => owner
 };

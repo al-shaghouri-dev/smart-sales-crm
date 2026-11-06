@@ -66,6 +66,22 @@ function loadConfig(env = process.env) {
       retentionDays: int(env.WEBHOOK_RETENTION_DAYS, 30),
       rateLimitPerMinute: int(env.WEBHOOK_RATE_LIMIT_PER_MINUTE, 1200)
     },
+    // ---- Messaging & media ----
+    messaging: {
+      sendMaxAttempts: int(env.MESSAGE_SEND_MAX_ATTEMPTS, 5),
+      sendRetryDelaySeconds: int(env.MESSAGE_SEND_RETRY_DELAY_SECONDS, 10),
+      maxMediaBytes: int(env.MEDIA_MAX_BYTES, 10 * 1024 * 1024)
+    },
+    media: {
+      // "local" (private folder on disk; needs a persistent disk) or "s3" (any S3-compatible service).
+      driver: env.MEDIA_DRIVER || 'local',
+      dir: env.MEDIA_DIR || '',
+      s3: {
+        bucket: env.MEDIA_S3_BUCKET, region: env.MEDIA_S3_REGION, endpoint: env.MEDIA_S3_ENDPOINT,
+        accessKeyId: env.MEDIA_S3_ACCESS_KEY_ID, secretAccessKey: env.MEDIA_S3_SECRET_ACCESS_KEY,
+        forcePathStyle: env.MEDIA_S3_FORCE_PATH_STYLE !== 'false'
+      }
+    },
     // Enabled provider adapters. Real providers arrive in Phase 3.3+; "fake" is for local tests only.
     channelProviders: list(env.CHANNEL_PROVIDERS),
     fakeProviderSecret: env.FAKE_PROVIDER_SECRET || ''
@@ -75,6 +91,8 @@ function loadConfig(env = process.env) {
   if (isProd && !config.keyRing) throw new Error('APP_ENCRYPTION_KEYS (or APP_ENCRYPTION_KEY) is required in production');
   if (!['all', 'web', 'worker'].includes(config.processRole)) throw new Error('PROCESS_ROLE must be all, web or worker');
   if (!['none', 'postgres'].includes(config.realtime.adapter)) throw new Error('REALTIME_ADAPTER must be none or postgres');
+  if (!['local', 's3'].includes(config.media.driver)) throw new Error('MEDIA_DRIVER must be local or s3');
+  if (config.media.driver === 's3' && !config.media.s3.bucket) throw new Error('MEDIA_S3_BUCKET is required when MEDIA_DRIVER=s3');
   if (isProd && config.channelProviders.includes('fake')) throw new Error('The fake channel provider cannot be enabled in production');
   return config;
 }

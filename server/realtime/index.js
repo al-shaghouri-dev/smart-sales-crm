@@ -17,8 +17,8 @@ const { COOKIE, parseCookies, resolveSession } = require('../middleware/session'
  *    the API, which re-checks authorisation.
  *  - Sessions are re-validated every REALTIME_REVALIDATE_SECONDS; sockets whose session ended or
  *    whose company access changed are disconnected, and permission rooms are refreshed.
- *  - Client-initiated room subscriptions go through registered authorisers (none in Phase 3.1,
- *    so every request is refused). Phase 3.2 registers "conversation".
+ *  - Client-initiated room subscriptions go through registered authorisers; unknown rooms are
+ *    refused. Phase 3.2 registers "conversation" (server/messaging/realtime.js).
  *  - Multi-instance: optional @socket.io/postgres-adapter (LISTEN/NOTIFY) — no Redis needed.
  */
 const SESSION_ROOM = id => `session:${id}`;
@@ -78,6 +78,7 @@ function createRealtime({ httpServer, db, config, logger = console }) {
         sessionId: auth.session.id,
         userId: auth.user.id,
         companyId: auth.company?.id || null,
+        membershipId: auth.company ? auth.membership?.id || null : null,
         platform: auth.isPlatformSession,
         permissions: [...auth.permissions].sort()
       };
@@ -151,6 +152,20 @@ function createRealtime({ httpServer, db, config, logger = console }) {
     },
     emitToResource(companyId, name, id, event, payload) {
       io.to(`company:${companyId}:${name}:${id}`).emit(event, payload);
+    },
+    /**
+     * Re-run the room's authoriser for every socket following a resource (e.g. after a conversation
+     * is reassigned) and remove those that lost access. Works across instances with the adapter.
+     */
+    async refreshResource(companyId, name, id) {
+      const authorize = roomAuthorizers.get(name);
+      const room = `company:${companyId}:${name}:${id}`;
+      const sockets = await io.in(room).fetchSockets();
+      for (const s of sockets) {
+        let ok = false;
+        try { ok = Boolean(authorize) && await authorize(s.data, id); } catch { ok = false; }
+        if (!ok) s.leave(room);
+      }
     },
     emitToUser(userId, event, payload) { io.to(USER_ROOM(userId)).emit(event, payload); },
     emitToPlatform(event, payload) { io.to(PLATFORM_ROOM).emit(event, payload); },

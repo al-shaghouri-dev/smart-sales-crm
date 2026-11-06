@@ -6,19 +6,20 @@ import { api } from '../../lib/api';
 import { errorMessage } from '../../lib/i18n';
 import { Badge, Button, ConfirmDialog, EmptyState, ErrorState, Field, IconButton, Modal, PageHeader, Spinner, fieldError, fmtMoney, localized, useLoader, useToast } from '../../components/ui';
 
-function PlanModal({ plan, features, currencies, onClose, onSaved }) {
+function PlanModal({ plan, features, currencies, providers = [], onClose, onSaved }) {
   const { t } = useTranslation();
   const toast = useToast();
   const [f, setF] = useState({
     nameEn: plan?.name?.en || '', nameAr: plan?.name?.ar || '', descEn: plan?.description?.en || '', descAr: plan?.description?.ar || '',
     interval: plan?.interval || 'month', durationDays: plan?.durationDays || '', price: plan?.price ?? '', currency: plan?.currency || 'USD',
     trialDays: plan?.trialDays ?? 0, maxEmployees: plan?.maxEmployees ?? '', maxChannels: plan?.maxChannels ?? '',
-    features: new Set(plan?.features || []), isActive: plan?.isActive ?? true, isPublic: plan?.isPublic ?? true, sort: plan?.sort ?? 0
+    features: new Set(plan?.features || []), providers: new Set(plan?.allowedProviders || []), isActive: plan?.isActive ?? true, isPublic: plan?.isPublic ?? true, sort: plan?.sort ?? 0
   });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const set = k => e => setF(x => ({ ...x, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }));
   const toggle = key => setF(x => { const s = new Set(x.features); s.has(key) ? s.delete(key) : s.add(key); return { ...x, features: s }; });
+  const toggleProvider = key => setF(x => { const s = new Set(x.providers); s.has(key) ? s.delete(key) : s.add(key); return { ...x, providers: s }; });
 
   async function submit(e) {
     e.preventDefault();
@@ -27,7 +28,7 @@ function PlanModal({ plan, features, currencies, onClose, onSaved }) {
       name: { en: f.nameEn, ar: f.nameAr }, description: { en: f.descEn, ar: f.descAr }, interval: f.interval,
       durationDays: f.interval === 'custom' ? Number(f.durationDays) : null, price: Number(f.price || 0), currency: f.currency,
       trialDays: Number(f.trialDays || 0), maxEmployees: f.maxEmployees === '' ? null : Number(f.maxEmployees),
-      maxChannels: f.maxChannels === '' ? null : Number(f.maxChannels), features: [...f.features], isActive: f.isActive, isPublic: f.isPublic, sort: Number(f.sort || 0)
+      maxChannels: f.maxChannels === '' ? null : Number(f.maxChannels), features: [...f.features], allowedProviders: f.providers.size ? [...f.providers] : null, isActive: f.isActive, isPublic: f.isPublic, sort: Number(f.sort || 0)
     };
     try {
       if (plan) await api.patch(`/api/platform/plans/${plan.id}`, body); else await api.post('/api/platform/plans', body);
@@ -55,6 +56,11 @@ function PlanModal({ plan, features, currencies, onClose, onSaved }) {
           <Field label={t('plans.maxEmployees')} hint={t('plans.emptyUnlimited')} error={fieldError(t, error, 'maxEmployees')}>{id => <input id={id} type="number" min="1" value={f.maxEmployees} onChange={set('maxEmployees')} />}</Field>
           <Field label={t('plans.maxChannels')} hint={t('plans.emptyUnlimited')}>{id => <input id={id} type="number" min="0" value={f.maxChannels} onChange={set('maxChannels')} />}</Field>
         </div>
+        <fieldset className="perm-group">
+          <legend>{t('plans.allowedProviders')}</legend>
+          <small className="hint">{t('plans.allowedProvidersHint')}</small>
+          {providers.map(k => <label key={k} className="check"><input type="checkbox" checked={f.providers.has(k)} onChange={() => toggleProvider(k)} /><span>{t(`channels.providers.${k}`)}</span></label>)}
+        </fieldset>
         <fieldset className="perm-group">
           <legend>{t('plans.features')}</legend>
           {features.map(k => <label key={k} className="check"><input type="checkbox" checked={f.features.has(k)} onChange={() => toggle(k)} /><span>{t(`planFeatures.${k}`)}</span></label>)}
@@ -117,7 +123,7 @@ export default function AdminPlans() {
           ))}
         </div>
       )}
-      {modal?.type === 'edit' && <PlanModal plan={modal.plan} features={data.features} currencies={data.currencies} onClose={() => setModal(null)} onSaved={() => { setModal(null); reload(); }} />}
+      {modal?.type === 'edit' && <PlanModal plan={modal.plan} features={data.features} currencies={data.currencies} providers={data.providers || []} onClose={() => setModal(null)} onSaved={() => { setModal(null); reload(); }} />}
       {modal?.type === 'delete' && <ConfirmDialog danger title={t('plans.deleteTitle', { name: localized(modal.plan.name, locale) })} body={t('roles.deleteBody')} confirmLabel={t('common.delete')}
         onClose={() => setModal(null)} onConfirm={async () => { await api.del(`/api/platform/plans/${modal.plan.id}`); reload(); }} />}
     </>

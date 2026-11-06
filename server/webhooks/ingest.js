@@ -16,7 +16,7 @@ const { ProviderError } = require('../channels/adapter');
  */
 const DEFAULTS = { bodyLimit: '1mb', rateLimitPerMinute: 1200 };
 
-function createWebhookRouter({ db, config, providers, jobs, logger = console }) {
+function createWebhookRouter({ db, config, providers, jobs, messaging = null, logger = console }) {
   const router = express.Router();
   const settings = { ...DEFAULTS, ...(config.webhooks || {}) };
   const limiter = rateLimit({ windowMs: 60 * 1000, limit: settings.rateLimitPerMinute, standardHeaders: 'draft-7', legacyHeaders: false });
@@ -36,7 +36,7 @@ function createWebhookRouter({ db, config, providers, jobs, logger = console }) 
     const adapter = adapterFor(req, res);
     if (!adapter) return;
     if (!adapter.handleVerification) return res.status(405).end();
-    const { status, body } = adapter.handleVerification({ query: req.query, endpointKey: req.params.endpointKey });
+    const { status, body } = adapter.handleVerification({ query: req.query, endpointKey: req.params.endpointKey, config });
     res.status(status).type('text/plain').send(body);
   };
 
@@ -44,10 +44,10 @@ function createWebhookRouter({ db, config, providers, jobs, logger = console }) 
     const adapter = adapterFor(req, res);
     if (!adapter) return;
     const rawBody = Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0);
-    const context = { rawBody, headers: req.headers, query: req.query, endpointKey: req.params.endpointKey };
+    const context = { rawBody, headers: req.headers, query: req.query, endpointKey: req.params.endpointKey, messaging, config };
 
     let verified = false;
-    try { verified = adapter.verifyRequest(context) === true; } catch { verified = false; }
+    try { verified = (await adapter.verifyRequest(context)) === true; } catch { verified = false; }
     if (!verified) return res.status(401).json({ ok: false });
 
     let events;

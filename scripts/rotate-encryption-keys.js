@@ -9,17 +9,16 @@
  *   4. Run:  npm run secrets:rotate            (add --dry-run to only count)
  *   5. When it reports 0 remaining, remove the old key from APP_ENCRYPTION_KEYS and restart.
  *
- * ENCRYPTED_FIELDS lists every encrypted column. It is empty until channel credentials are
- * stored (Phase 3.2); the script is safe to run at any time.
+ * ENCRYPTED_FIELDS lists every encrypted column (channel credentials since Phase 3.2).
+ * The script is safe to run at any time and can be re-run after an interruption.
  */
 const { loadConfig } = require('../server/config');
 const { createDb } = require('../server/db');
 const { reencryptColumn } = require('../server/security/secrets');
 
 const ENCRYPTED_FIELDS = [
-  // Phase 3.2 example:
-  // { table: 'channel_credentials', column: 'ciphertext', idColumn: 'channel_id',
-  //   contextFor: row => ({ purpose: 'channel_credential', companyId: row.company_id, channelId: row.channel_id }) }
+  { table: 'channel_credentials', column: 'ciphertext', idColumn: 'channel_id', keyIdColumn: 'key_id',
+    contextFor: row => ({ purpose: 'channel_credential', companyId: row.company_id, channelId: row.channel_id }) }
 ];
 
 (async () => {

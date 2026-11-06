@@ -133,6 +133,61 @@
     "webhooks": {
       "not_found": "لم يتم العثور على حدث الـ Webhook.",
       "not_failed": "يمكن إعادة محاولة الأحداث الفاشلة فقط."
+    },
+    "media": {
+      "empty": "الملف فارغ.",
+      "too_large": "حجم الملف كبير جداً.",
+      "unsupported_type": "نوع الملف غير مدعوم.",
+      "invalid": "تعذّر رفع الملف."
+    },
+    "channels": {
+      "provider_unavailable": "نوع القناة هذا غير متاح.",
+      "not_found": "القناة غير موجودة.",
+      "account_in_use": "هذا الحساب مربوط بالفعل بمساحة عمل أخرى.",
+      "provider_not_allowed": "باقتك لا تشمل نوع القناة هذا.",
+      "plan_limit": "وصلت إلى حد القنوات في باقتك.",
+      "encryption_unavailable": "تشفير بيانات الاعتماد غير مُعدّ على الخادم."
+    },
+    "conversations": {
+      "not_found": "المحادثة غير موجودة.",
+      "invalid_assignee": "لا يمكن إسناد المحادثات إلى هذا العضو."
+    },
+    "messages": {
+      "empty": "اكتب رسالة أو أرفق ملفاً.",
+      "outbound_paused": "الإرسال متوقف لهذه المساحة. تواصل مع الدعم.",
+      "channel_unavailable": "هذه القناة غير متصلة.",
+      "media_unsupported": "هذه القناة لا تدعم المرفقات.",
+      "window_closed": "انتهت نافذة الرد على هذه المحادثة.",
+      "not_retryable": "يمكن إعادة محاولة الرسائل الفاشلة فقط.",
+      "daily_limit": "وصلت هذه المساحة إلى حد الإرسال اليومي."
+    },
+    "provider": {
+      "rate_limited": "المزوّد يحدّ من معدل الرسائل. ستُعاد المحاولة.",
+      "token_invalid": "توكن القناة غير صالح. أعد ربط القناة.",
+      "token_expired": "انتهت صلاحية توكن القناة. أعد ربط القناة.",
+      "permission_revoked": "سُحبت الصلاحية. أعد ربط القناة.",
+      "unauthorized": "رفض المزوّد بيانات الاعتماد.",
+      "bad_request": "رفض المزوّد هذه الرسالة.",
+      "invalid_input": "البيانات المدخلة غير صحيحة.",
+      "unavailable": "المزوّد غير متاح مؤقتاً.",
+      "network_error": "تعذّر الوصول إلى المزوّد.",
+      "not_enabled": "هذا المزوّد غير مفعّل على الخادم.",
+      "delivery_failed": "لم يتمكن المزوّد من توصيل الرسالة.",
+      "recipient_blocked": "لا يستطيع العميل استقبال رسائل من هذا الحساب.",
+      "window_closed": "خارج نافذة الرد لدى المزوّد.",
+      "media_too_large": "المرفق يتجاوز حد الحجم لدى المزوّد.",
+      "unsupported_media": "المزوّد لا يقبل هذا النوع من المرفقات.",
+      "template_required": "خارج نافذة 24 ساعة يلزم استخدام قالب معتمد.",
+      "conflict": "تطبيق آخر يستقبل تحديثات هذا البوت."
+    },
+    "channel": {
+      "disconnected": "تم فصل القناة.",
+      "needs_reconnect": "القناة تحتاج إلى إعادة ربط.",
+      "credentials_unreadable": "تعذّرت قراءة بيانات اعتماد القناة. أعد ربطها."
+    },
+    "send": {
+      "unknown_outcome": "تعذّر تأكيد الإرسال؛ تحقّق مع العميل قبل إعادة الإرسال.",
+      "error": "تعذّر إرسال الرسالة."
     }
   },
   "auth": {
@@ -170,7 +225,9 @@
     "overview": "نظرة عامة",
     "plans": "الخطط",
     "platformSettings": "إعدادات المنصة",
-    "registrations": "طلبات التسجيل"
+    "registrations": "طلبات التسجيل",
+    "inbox": "صندوق الوارد",
+    "channels": "القنوات"
   },
   "blocked": {
     "noWorkspaceTitle": "لا توجد مساحة عمل بعد",
@@ -413,7 +470,11 @@
       "registration.info_requested": "طلب معلومات إضافية",
       "platform.member_invite_link": "إنشاء رابط دعوة لعضو (المدير العام)",
       "platform.member_reset_link": "إنشاء رابط إعادة تعيين لعضو (المدير العام)",
-      "webhook.retried": "إعادة محاولة حدث Webhook فاشل"
+      "webhook.retried": "إعادة محاولة حدث Webhook فاشل",
+      "channel.connected": "ربط قناة",
+      "channel.reconnected": "إعادة ربط قناة",
+      "channel.disconnected": "فصل قناة",
+      "conversation.assigned": "إسناد محادثة"
     }
   },
   "platform": {
@@ -613,7 +674,10 @@
     "unlimited": "غير محدود",
     "trial": "تجربة مجانية {{count}} يوم",
     "usedBy": "تستخدمها {{count}} شركة",
-    "deleteTitle": "حذف الخطة «{{name}}»؟"
+    "deleteTitle": "حذف الخطة «{{name}}»؟",
+    "allowedProviders": "أنواع القنوات المسموحة",
+    "allowedProvidersHint": "اترك الكل دون تحديد للسماح بجميع أنواع القنوات.",
+    "allProviders": "كل أنواع القنوات"
   },
   "planFeatures": {
     "reports.advanced": "تقارير متقدمة",
@@ -727,5 +791,142 @@
     "registrationApproved": "تم قبول الطلب",
     "registrationRejected": "تم رفض الطلب",
     "infoRequested": "تم طلب معلومات إضافية"
+  },
+  "inbox": {
+    "conversations": "المحادثات",
+    "search": "ابحث بالاسم أو الهاتف أو الرسالة",
+    "assignedFilter": "الإسناد",
+    "channelFilter": "القناة",
+    "filter": {
+      "all": "كل المحادثات",
+      "mine": "المسندة إليّ",
+      "unassigned": "غير مسندة",
+      "allChannels": "كل القنوات"
+    },
+    "status": {
+      "open": "مفتوحة",
+      "pending": "معلّقة",
+      "closed": "مغلقة"
+    },
+    "priority": {
+      "low": "منخفضة",
+      "normal": "عادية",
+      "high": "مرتفعة",
+      "urgent": "عاجلة"
+    },
+    "messageStatus": {
+      "received": "مستلمة",
+      "queued": "في الانتظار",
+      "sending": "جارٍ الإرسال",
+      "sent": "أُرسلت",
+      "delivered": "وصلت",
+      "read": "قُرئت",
+      "failed": "فشلت"
+    },
+    "emptyTitle": "لا توجد محادثات هنا",
+    "emptyBody": "ستظهر رسائل العملاء الجديدة هنا تلقائياً.",
+    "unreadCount": "{{count}} غير مقروءة",
+    "loadMore": "عرض المزيد",
+    "loadOlder": "عرض الرسائل الأقدم",
+    "noMessages": "لا توجد رسائل بعد",
+    "unsupported": "نوع هذه الرسالة غير مدعوم بعد",
+    "attachmentOmitted": "المرفق أكبر من الحد المسموح للتخزين",
+    "sendFailed": "لم تُرسل",
+    "details": "التفاصيل",
+    "channelDown": "هذه القناة غير متصلة. أعد ربطها من صفحة القنوات لتتمكن من الرد.",
+    "windowClosed": "انتهت نافذة الرد ({{hours}} ساعة). يمكنك الرد بعد أن يراسلك العميل مجدداً.",
+    "noQuickReplies": "لا توجد ردود سريعة بعد. أضفها من إعدادات الشركة.",
+    "quickReplies": "الردود السريعة",
+    "attach": "إرفاق ملف",
+    "typeMessage": "اكتب رسالة…",
+    "send": "إرسال",
+    "assigned": "تم تحديث الإسناد",
+    "phone": "الهاتف",
+    "email": "البريد الإلكتروني",
+    "channel": "القناة",
+    "started": "بدأت",
+    "replyWindow": "نافذة الرد",
+    "windowOpenUntil": "مفتوحة حتى {{time}}",
+    "windowClosedShort": "مغلقة",
+    "statusLabel": "الحالة",
+    "priorityLabel": "الأولوية",
+    "assignee": "مسندة إلى",
+    "unassigned": "غير مسندة",
+    "assignmentHistory": "سجل الإسناد",
+    "assignedTo": "أُسندت إلى {{name}}",
+    "unassignedEvent": "أُلغي الإسناد",
+    "selectTitle": "اختر محادثة",
+    "selectBody": "اختر محادثة من القائمة لقراءتها والرد عليها.",
+    "noChannelsTitle": "لم تُربط أي قناة بعد",
+    "noChannelsBody": "اربط قناة مراسلة لتبدأ باستقبال محادثات العملاء هنا.",
+    "connectChannel": "ربط قناة"
+  },
+  "channels": {
+    "title": "القنوات",
+    "subtitle": "اربط حسابات المراسلة وراقب حالتها.",
+    "usage": "القنوات المستخدمة",
+    "usageOf": "{{used}} من {{max}}",
+    "usageUnlimited": "{{used}} (غير محدود)",
+    "connected": "القنوات المتصلة",
+    "noneTitle": "لا توجد قنوات بعد",
+    "noneBody": "اربط قناة من الأسفل لاستقبال الرسائل في صندوق الوارد.",
+    "addTitle": "إضافة قناة",
+    "limitReached": "وصلت إلى حد القنوات في باقتك. افصل قناة أو رقِّ باقتك.",
+    "notAvailable": "غير مفعّلة على هذا الخادم بعد",
+    "notInPlan": "غير مشمولة في باقتك",
+    "connect": "ربط",
+    "reconnect": "إعادة الربط",
+    "test": "اختبار",
+    "disconnect": "فصل",
+    "testOk": "الاتصال يعمل",
+    "testFailed": "فشل اختبار الاتصال",
+    "reconnected": "أُعيد ربط القناة",
+    "disconnected": "تم فصل القناة",
+    "disconnectTitle": "فصل القناة؟",
+    "disconnectBody": "ستتوقف «{{name}}» عن استقبال الرسائل وإرسالها. تُحذف بيانات اعتمادها المخزّنة، ويبقى سجل المحادثات.",
+    "connectTitle": "ربط {{provider}}",
+    "secretNote": "تُشفَّر التوكنات على الخادم ولا تُعرض مرة أخرى.",
+    "lastInbound": "آخر رسالة واردة",
+    "lastOutbound": "آخر رسالة صادرة",
+    "lastCheck": "آخر فحص",
+    "tokenExpiring": "التوكن على وشك الانتهاء",
+    "providerDisabled": "المزوّد معطّل",
+    "status": {
+      "connecting": "جارٍ الربط",
+      "active": "نشطة",
+      "needs_reconnect": "تحتاج إعادة ربط",
+      "error": "خطأ",
+      "disconnected": "مفصولة"
+    },
+    "providers": {
+      "telegram": "تيليجرام",
+      "messenger": "ماسنجر",
+      "instagram": "إنستغرام",
+      "whatsapp": "واتساب",
+      "fake": "مزوّد تجريبي"
+    },
+    "descriptions": {
+      "telegram": "اربط بوت تيليجرام أنشأته عبر ‎@BotFather.",
+      "messenger": "اربط صفحة فيسبوك للرد على محادثات ماسنجر.",
+      "instagram": "اربط حساب إنستغرام احترافياً.",
+      "whatsapp": "واجهة WhatsApp Business Cloud الرسمية.",
+      "fake": "قناة محاكاة لبيئة التطوير فقط."
+    },
+    "help": {
+      "telegram": "1. افتح ‎@BotFather في تيليجرام وأرسل ‎/newbot.\n2. اختر اسماً واسم مستخدم للبوت.\n3. انسخ التوكن الذي يعطيك إياه BotFather والصقه في الأسفل.",
+      "fake": "قناة محاكاة للاختبار المحلي فقط."
+    },
+    "fields": {
+      "token": "توكن البوت",
+      "accountId": "معرّف الحساب",
+      "displayName": "الاسم الظاهر",
+      "phoneNumberId": "معرّف رقم الهاتف",
+      "wabaId": "معرّف حساب واتساب للأعمال",
+      "accessToken": "رمز الوصول"
+    },
+    "fieldHints": {
+      "token": "يشبه ‎123456789:AA…"
+    },
+    "connectSuccess": "تم ربط القناة"
   }
 }

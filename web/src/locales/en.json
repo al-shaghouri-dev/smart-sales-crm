@@ -133,6 +133,61 @@
     "webhooks": {
       "not_found": "Webhook event not found.",
       "not_failed": "Only failed events can be retried."
+    },
+    "media": {
+      "empty": "The file is empty.",
+      "too_large": "The file is too large.",
+      "unsupported_type": "This file type is not supported.",
+      "invalid": "The file could not be uploaded."
+    },
+    "channels": {
+      "provider_unavailable": "This channel type is not available.",
+      "not_found": "Channel not found.",
+      "account_in_use": "This account is already connected to another workspace.",
+      "provider_not_allowed": "Your plan does not include this channel type.",
+      "plan_limit": "Your plan's channel limit has been reached.",
+      "encryption_unavailable": "Credential encryption is not configured on the server."
+    },
+    "conversations": {
+      "not_found": "Conversation not found.",
+      "invalid_assignee": "This member cannot be assigned conversations."
+    },
+    "messages": {
+      "empty": "Write a message or attach a file.",
+      "outbound_paused": "Sending is paused for this workspace. Contact support.",
+      "channel_unavailable": "This channel is not connected.",
+      "media_unsupported": "This channel does not support attachments.",
+      "window_closed": "The reply window for this conversation has closed.",
+      "not_retryable": "Only failed messages can be retried.",
+      "daily_limit": "The daily sending limit for this workspace has been reached."
+    },
+    "provider": {
+      "rate_limited": "The provider is rate limiting messages. It will be retried.",
+      "token_invalid": "The channel's access token is invalid. Reconnect the channel.",
+      "token_expired": "The channel's access token expired. Reconnect the channel.",
+      "permission_revoked": "Permission was revoked. Reconnect the channel.",
+      "unauthorized": "The provider rejected the credentials.",
+      "bad_request": "The provider rejected this message.",
+      "invalid_input": "The details entered are not valid.",
+      "unavailable": "The provider is temporarily unavailable.",
+      "network_error": "Could not reach the provider.",
+      "not_enabled": "This provider is not enabled on the server.",
+      "delivery_failed": "The provider could not deliver this message.",
+      "recipient_blocked": "The customer cannot receive messages from this account.",
+      "window_closed": "Outside the provider's reply window.",
+      "media_too_large": "The attachment exceeds the provider's size limit.",
+      "unsupported_media": "The provider does not accept this attachment type.",
+      "template_required": "Outside the 24-hour window a pre-approved template is required.",
+      "conflict": "Another app is receiving this bot's updates."
+    },
+    "channel": {
+      "disconnected": "The channel was disconnected.",
+      "needs_reconnect": "The channel needs to be reconnected.",
+      "credentials_unreadable": "The channel's stored credentials cannot be read. Reconnect the channel."
+    },
+    "send": {
+      "unknown_outcome": "Delivery could not be confirmed; check with the customer before resending.",
+      "error": "The message could not be sent."
     }
   },
   "auth": {
@@ -170,7 +225,9 @@
     "overview": "Overview",
     "plans": "Plans",
     "platformSettings": "Platform settings",
-    "registrations": "Registrations"
+    "registrations": "Registrations",
+    "inbox": "Inbox",
+    "channels": "Channels"
   },
   "blocked": {
     "noWorkspaceTitle": "No workspace yet",
@@ -413,7 +470,11 @@
       "registration.info_requested": "Requested more information",
       "platform.member_invite_link": "Created a member invitation link (Super Admin)",
       "platform.member_reset_link": "Created a member reset link (Super Admin)",
-      "webhook.retried": "Retried a failed webhook event"
+      "webhook.retried": "Retried a failed webhook event",
+      "channel.connected": "Channel connected",
+      "channel.reconnected": "Channel reconnected",
+      "channel.disconnected": "Channel disconnected",
+      "conversation.assigned": "Conversation assigned"
     }
   },
   "platform": {
@@ -613,7 +674,10 @@
     "unlimited": "Unlimited",
     "trial": "{{count}}-day free trial",
     "usedBy": "Used by {{count}} company(ies)",
-    "deleteTitle": "Delete plan “{{name}}”?"
+    "deleteTitle": "Delete plan “{{name}}”?",
+    "allowedProviders": "Allowed channel types",
+    "allowedProvidersHint": "Leave all unchecked to allow every channel type.",
+    "allProviders": "All channel types"
   },
   "planFeatures": {
     "reports.advanced": "Advanced reports",
@@ -727,5 +791,142 @@
     "registrationApproved": "Request approved",
     "registrationRejected": "Request rejected",
     "infoRequested": "Information requested"
+  },
+  "inbox": {
+    "conversations": "Conversations",
+    "search": "Search name, phone or message",
+    "assignedFilter": "Assignment",
+    "channelFilter": "Channel",
+    "filter": {
+      "all": "All conversations",
+      "mine": "Assigned to me",
+      "unassigned": "Unassigned",
+      "allChannels": "All channels"
+    },
+    "status": {
+      "open": "Open",
+      "pending": "Pending",
+      "closed": "Closed"
+    },
+    "priority": {
+      "low": "Low",
+      "normal": "Normal",
+      "high": "High",
+      "urgent": "Urgent"
+    },
+    "messageStatus": {
+      "received": "Received",
+      "queued": "Queued",
+      "sending": "Sending",
+      "sent": "Sent",
+      "delivered": "Delivered",
+      "read": "Read",
+      "failed": "Failed"
+    },
+    "emptyTitle": "No conversations here",
+    "emptyBody": "New customer messages will appear here automatically.",
+    "unreadCount": "{{count}} unread",
+    "loadMore": "Load more",
+    "loadOlder": "Load earlier messages",
+    "noMessages": "No messages yet",
+    "unsupported": "This message type is not supported yet",
+    "attachmentOmitted": "Attachment too large to store",
+    "sendFailed": "Not sent",
+    "details": "Details",
+    "channelDown": "This channel is not connected. Reconnect it from the Channels page to reply.",
+    "windowClosed": "The {{hours}}-hour reply window has closed. You can reply after the customer writes again.",
+    "noQuickReplies": "No quick replies yet. Add them in company settings.",
+    "quickReplies": "Quick replies",
+    "attach": "Attach a file",
+    "typeMessage": "Type a message…",
+    "send": "Send",
+    "assigned": "Assignment updated",
+    "phone": "Phone",
+    "email": "Email",
+    "channel": "Channel",
+    "started": "Started",
+    "replyWindow": "Reply window",
+    "windowOpenUntil": "Open until {{time}}",
+    "windowClosedShort": "Closed",
+    "statusLabel": "Status",
+    "priorityLabel": "Priority",
+    "assignee": "Assigned to",
+    "unassigned": "Unassigned",
+    "assignmentHistory": "Assignment history",
+    "assignedTo": "Assigned to {{name}}",
+    "unassignedEvent": "Unassigned",
+    "selectTitle": "Select a conversation",
+    "selectBody": "Choose a conversation from the list to read and reply.",
+    "noChannelsTitle": "No channels connected yet",
+    "noChannelsBody": "Connect a messaging channel to start receiving customer conversations here.",
+    "connectChannel": "Connect a channel"
+  },
+  "channels": {
+    "title": "Channels",
+    "subtitle": "Connect your messaging accounts and monitor their health.",
+    "usage": "Channels used",
+    "usageOf": "{{used}} of {{max}}",
+    "usageUnlimited": "{{used}} (unlimited)",
+    "connected": "Connected channels",
+    "noneTitle": "No channels yet",
+    "noneBody": "Connect a channel below to receive messages in the inbox.",
+    "addTitle": "Add a channel",
+    "limitReached": "Your plan's channel limit is reached. Disconnect a channel or upgrade your plan.",
+    "notAvailable": "Not enabled on this server yet",
+    "notInPlan": "Not included in your plan",
+    "connect": "Connect",
+    "reconnect": "Reconnect",
+    "test": "Test",
+    "disconnect": "Disconnect",
+    "testOk": "Connection works",
+    "testFailed": "Connection test failed",
+    "reconnected": "Channel reconnected",
+    "disconnected": "Channel disconnected",
+    "disconnectTitle": "Disconnect channel?",
+    "disconnectBody": "“{{name}}” will stop receiving and sending messages. Its stored credentials are deleted; conversation history is kept.",
+    "connectTitle": "Connect {{provider}}",
+    "secretNote": "Tokens are encrypted on the server and are never shown again.",
+    "lastInbound": "Last message received",
+    "lastOutbound": "Last message sent",
+    "lastCheck": "Last check",
+    "tokenExpiring": "Token expiring soon",
+    "providerDisabled": "Provider disabled",
+    "status": {
+      "connecting": "Connecting",
+      "active": "Active",
+      "needs_reconnect": "Needs reconnect",
+      "error": "Error",
+      "disconnected": "Disconnected"
+    },
+    "providers": {
+      "telegram": "Telegram",
+      "messenger": "Messenger",
+      "instagram": "Instagram",
+      "whatsapp": "WhatsApp",
+      "fake": "Test provider"
+    },
+    "descriptions": {
+      "telegram": "Connect a Telegram bot created with @BotFather.",
+      "messenger": "Connect a Facebook Page to answer Messenger chats.",
+      "instagram": "Connect an Instagram professional account.",
+      "whatsapp": "Official WhatsApp Business Cloud API.",
+      "fake": "Development-only simulated channel."
+    },
+    "help": {
+      "telegram": "1. Open @BotFather in Telegram and send /newbot.\n2. Choose a name and username for your bot.\n3. Copy the token BotFather gives you and paste it below.",
+      "fake": "Simulated channel for local testing only."
+    },
+    "fields": {
+      "token": "Bot token",
+      "accountId": "Account ID",
+      "displayName": "Display name",
+      "phoneNumberId": "Phone number ID",
+      "wabaId": "WhatsApp Business Account ID",
+      "accessToken": "Access token"
+    },
+    "fieldHints": {
+      "token": "Looks like 123456789:AA…"
+    },
+    "connectSuccess": "Channel connected"
   }
 }

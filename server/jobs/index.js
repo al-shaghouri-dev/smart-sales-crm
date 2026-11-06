@@ -14,6 +14,7 @@ const { PgBoss } = require('pg-boss');
 /** Queue definitions: retry/backoff/expiry per queue. */
 function queueDefinitions(config) {
   const w = config.webhooks;
+  const m = { sendMaxAttempts: 5, sendRetryDelaySeconds: 10, ...(config.messaging || {}) };
   return {
     'webhook.process': {
       // pg-boss may retry a little more than our own attempt counter (webhook_events.attempts),
@@ -25,6 +26,16 @@ function queueDefinitions(config) {
       ...(w.retryDelaySeconds > 0 ? { retryDelayMax: 3600 } : {}),
       expireInSeconds: 300
     },
+    'message.send': {
+      // messages.attempts is the authority (see server/messaging); pg-boss only schedules retries.
+      retryLimit: m.sendMaxAttempts + 1,
+      retryDelay: m.sendRetryDelaySeconds,
+      retryBackoff: m.sendRetryDelaySeconds > 0,
+      // Capped so the outbox sweeper (5 minutes) never mistakes a waiting retry for a lost job.
+      ...(m.sendRetryDelaySeconds > 0 ? { retryDelayMax: 240 } : {}),
+      expireInSeconds: 120
+    },
+    'message.sweep': { retryLimit: 1, expireInSeconds: 120 },
     'webhook.sweep': { retryLimit: 1, expireInSeconds: 120 },
     'webhook.cleanup': { retryLimit: 1, expireInSeconds: 600 },
     'subscription.maintenance': { retryLimit: 2, retryDelay: 60, expireInSeconds: 600 }
@@ -34,6 +45,7 @@ function queueDefinitions(config) {
 /** Cron schedules (UTC). Only processes with the worker role register them. */
 const SCHEDULES = {
   'webhook.sweep': '*/5 * * * *',          // re-queue events whose job was lost
+  'message.sweep': '*/2 * * * *',          // re-queue outbound messages whose job was lost
   'webhook.cleanup': '17 3 * * *',         // retention clean-up, daily
   'subscription.maintenance': '7 * * * *'  // hourly (replaces the Phase 2 in-process timer)
 };
