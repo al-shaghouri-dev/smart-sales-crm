@@ -119,7 +119,8 @@ async function safeFetch(raw, opts = {}) {
   let current = raw;
   for (let hop = 0; hop <= maxRedirects; hop++) {
     const { url, addresses } = await assertSafeUrl(current, opts);
-    const res = await request(url, addresses, { method: hop === 0 ? method : 'GET', headers: hop === 0 ? headers : {}, // credentials are never forwarded to a redirect target body: hop === 0 ? body : null, timeoutMs, maxBytes });
+    // Credentials and bodies are never forwarded to a redirect target.
+    const res = await request(url, addresses, { method: hop === 0 ? method : 'GET', headers: hop === 0 ? headers : {}, body: hop === 0 ? body : null, timeoutMs, maxBytes });
     if ([301, 302, 303, 307, 308].includes(res.status)) {
       if (!res.headers.location) throw new SafeFetchError('net.bad_redirect');
       current = new URL(res.headers.location, url).toString();
