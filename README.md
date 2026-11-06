@@ -1,85 +1,66 @@
 # Smart Sales CRM
 
-Multi-tenant sales & customer-messaging CRM platform (Arabic / English).
+Multi-tenant sales & customer-messaging CRM platform (Arabic / English) by **WASL Technologies**.
 
-**Status:** Phase 2 — Super Admin console, company management, plans & subscriptions (manual payments),
-self-registration with approval, secure invitations & password reset — on top of the Phase 1 foundation
-(multi-tenant PostgreSQL with Row Level Security, sessions, roles & permissions, branding, Arabic/English).
-**Phase 3.1 (infrastructure):** background jobs (pg-boss), Socket.IO real-time, credential encryption v2,
-a shared webhook pipeline and the channel-provider adapter interface with a fake provider for tests.
-No real messaging provider (Telegram, Messenger, Instagram, WhatsApp) is integrated yet.
-Inbox, customers, orders and messaging channels are being rebuilt in later phases; until then the
-original prototype is kept runnable under `legacy/` (`npm run legacy`).
+A Super Admin runs the platform (companies, plans, subscriptions, registrations, channel monitoring);
+each company gets its own team, roles & permissions, branding, a unified inbox and messaging channels
+(Telegram, Messenger, Instagram, WhatsApp Cloud API).
 
 ## Stack
-Node.js + Express 5 · PostgreSQL 16 + Knex migrations · React 18 + Vite · i18next
+
+Node.js 22 · Express 5 · PostgreSQL 16 (Row Level Security) · Knex migrations · pg-boss (jobs in PostgreSQL) ·
+Socket.IO · React 18 + Vite · i18next (RTL/LTR)
 
 ```
-server/        API (routes, session/permission middleware, services)
-db/migrations/ Knex migrations (schema + RLS policies)
-web/           React frontend (locales in web/src/locales/{ar,en}.json)
-scripts/       CLI: create platform admin, create company
-test/          API/RLS integration tests (real PostgreSQL) + frontend unit tests
-legacy/        Original single-workspace prototype (Phase 0 hardened)
+server/            API, Socket.IO, background jobs, channel adapters, security
+web/               React frontend (locales in web/src/locales/{ar,en}.json)
+db/migrations/     Knex migrations (schema, RLS policies, seed rows); db/schema.sql = generated reference
+scripts/           database preparation, admin/company CLI, backup/restore, key rotation, load test
+infrastructure/    Docker Compose (production), PostgreSQL init, Nginx, systemd
+Dockerfile         production image (API + frontend + jobs)
+docs/              documentation (see below)
+test/              integration tests (real PostgreSQL) + frontend unit tests
+legacy/            original single-company prototype — reference only, not deployed
 ```
 
-## Running it
-
-See **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)** for local setup (Windows/macOS/Linux), migrations,
-process roles, health checks, graceful shutdown, key rotation and free-tier limitations.
-
-## Local setup
+## Quick start (production, Docker)
 
 ```bash
-cp .env.example .env            # then edit passwords / keys
-docker compose up -d            # PostgreSQL with owner + app roles (docker/postgres/init.sh)
+cp .env.example .env            # fill in (docs/ENVIRONMENT.md)
+docker compose -f infrastructure/docker/docker-compose.production.yml --env-file .env up -d --build
+curl -fsS http://127.0.0.1:3000/api/ready
+```
+
+Then put TLS in front (Nginx profile or your proxy) and sign in at `/admin/login`.
+Full instructions: **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)**.
+
+## Development
+
+```bash
 npm install
-npm run migrate                 # runs as DATABASE_MIGRATION_URL (schema owner)
-npm run platform:admin -- --email you@example.com --name "Your Name"     # prompts for password
-npm run company:create -- --name "Acme" --owner-email owner@acme.com --owner-name "Owner Name"   # optional; the admin console can do this
-npm run dev                     # API + jobs + Socket.IO on :3000
-npm run dev:web                 # UI on :5173 (proxies /api)
+docker compose up -d            # development PostgreSQL (roles sscrm_owner / sscrm_app)
+cp .env.example .env            # set NODE_ENV=development, DATABASE_URL / DATABASE_MIGRATION_URL for localhost
+npm run migrate
+npm run platform:admin -- --email you@example.com --name "Your Name"
+npm run dev                     # API on :3000
+npm run dev:web                 # Vite on :5173
+npm test                        # needs TEST_DATABASE_* (see .env.example)
 ```
 
-Production: `npm run build && npm start` (Express serves `dist/web`). Set `NODE_ENV=production`,
-`APP_ENCRYPTION_KEY`, and `TRUST_PROXY=true` behind a proxy. There are **no default accounts**.
+## Documentation
 
-## Areas
-- `/admin/login` → **Super Admin console** (separate session; companies, registrations, plans, subscriptions, payments, platform settings)
-- `/login` → **company workspace**; `/register` → self-service registration (approval required)
-- `/invite#<token>`, `/reset-password#<token>` → one-time links (invitations expire after 7 days, resets after 1 hour).
-  The token sits in the URL fragment, which browsers never send to servers; the page submits it in a POST body
-  and removes it from the address bar.
-- Super Admins can create a one-time reset/invitation link for any member from the company Members tab.
-  Platform-admin accounts are recovered with `npm run platform:admin -- --email … --name … --reset-password`.
+| Document | Contents |
+|---|---|
+| [HANDOVER](docs/HANDOVER.md) | start here: status, requirements, external services |
+| [ARCHITECTURE](docs/ARCHITECTURE.md) | components, request flow, multi-tenancy, jobs, real-time |
+| [DEPLOYMENT](docs/DEPLOYMENT.md) | Docker, systemd, container platforms, Render/Vercel |
+| [DATABASE](docs/DATABASE.md) | roles, migrations, tables, backup & restore |
+| [ENVIRONMENT](docs/ENVIRONMENT.md) | every environment variable |
+| [API_DOCUMENTATION](docs/API_DOCUMENTATION.md) | REST endpoints, auth, errors |
+| [MAINTENANCE](docs/MAINTENANCE.md) | updates, logs, backups, key rotation, troubleshooting |
+| [SECURITY](docs/SECURITY.md) | OWASP review and controls |
+| [META_APP_REVIEW](docs/META_APP_REVIEW.md) | Meta app and App Review preparation |
 
-## Subscriptions
-Plans (monthly / yearly / custom days) are managed in the console. Payments are confirmed manually and can extend the
-subscription. An hourly job (`npm run jobs:subscriptions` to run it once) expires overdue subscriptions and notifies
-owners 7 and 1 days before expiry. Expired or suspended subscriptions switch the workspace to read-only or billing-only
-(platform setting). **Company data is never deleted by subscription changes.**
-Seat limits are enforced with a per-company database lock (safe under simultaneous requests), and plan
-features such as `branding.custom` are checked on the server for every request.
+## Ownership
 
-## Security model
-- **Two database roles.** Migrations run as the schema owner; the app connects as `APP_DB_ROLE`
-  (no superuser, no BYPASSRLS). Every tenant table has `FORCE ROW LEVEL SECURITY`.
-- **Tenant context per transaction** (`server/db.js → withContext`) sets `app.company_id` / `app.user_id`
-  with `SET LOCAL` semantics; routes also filter by `company_id` explicitly (defence in depth).
-- Platform-wide access (`app.platform_admin`) is enabled only inside `/api/platform` handlers.
-- Sessions: random token in an httpOnly SameSite cookie, stored hashed in `sessions`; CSRF token required for writes.
-- Permissions are checked server-side (`requirePermission`); members cannot grant permissions they lack,
-  edit their own role, or manage owners; a company admin cannot change credentials of an account shared with another company.
-- Audit log (`audit_logs`) records sensitive actions; secrets are redacted.
-
-## Tests
-
-```bash
-# needs a throwaway database; see TEST_* in .env.example
-npm test
-```
-
-## Localization
-Language on first visit follows the device (`ar*` → Arabic RTL, `en*` → English LTR, otherwise the platform default).
-A manual choice is saved on the device and on the account and is never overridden by detection.
-Add a language: create `web/src/locales/<code>.json`, register it in `web/src/lib/i18n.js` and `SUPPORTED_LOCALES`.
+Owned by WASL Technologies. No open-source license is included; use is governed by the owner's agreements.

@@ -1,4 +1,96 @@
-# Running Smart Sales CRM — local development, free tiers, and a later VPS
+# Deployment guide
+
+This guide is for the engineer who deploys and operates Smart Sales CRM on their own infrastructure.
+**Part A** (self-hosting with Docker, a plain Linux server or a container platform) is the primary path and
+was tested end-to-end. **Part B** (below) keeps the original notes: local development, hosting constraints,
+free tiers, Vercel, Render and the free testing setup.
+
+## A1. What you deploy
+
+- **One Node.js 22 application** (image built from `Dockerfile`) serving API + React frontend + Socket.IO +
+  background jobs. Stateless except for uploaded files.
+- **PostgreSQL 16** (14+), reachable from the app; two roles (owner + restricted app role).
+- **Persistent storage** for `/data` (logos + message attachments) or an S3-compatible bucket.
+- **TLS reverse proxy** (Nginx config provided, or your load balancer) with WebSocket support.
+- Outbound HTTPS from the app to Telegram/Meta (only for enabled channels) and SMTP (optional).
+
+Minimum size for a small production: 1 vCPU, 1 GB RAM for the app; PostgreSQL with 1 GB RAM and 10 GB disk.
+
+## A2. Docker Compose on one server (tested)
+
+```bash
+git clone https://github.com/al-shaghouri-dev/smart-sales-crm.git && cd smart-sales-crm
+git checkout saas/phase-0-1-clean          # or the release tag you were given
+cp .env.example .env && chmod 600 .env     # fill in values (docs/ENVIRONMENT.md)
+```
+
+Minimum `.env` values for this path: `POSTGRES_SUPERUSER_PASSWORD`, `SSCRM_OWNER_PASSWORD`,
+`SSCRM_APP_PASSWORD` (URL-safe: `openssl rand -hex 24`), `APP_URL=https://<your-domain>`, `TRUST_PROXY=1`,
+`APP_ENCRYPTION_KEYS=k1:<openssl rand -base64 32>`, `APP_ENCRYPTION_PRIMARY_KEY_ID=k1`,
+`WEBHOOK_SECRET_KEY=<openssl rand -base64 32>`, and either `BOOTSTRAP_ADMIN_EMAIL`/`BOOTSTRAP_ADMIN_PASSWORD`
+or create the admin with the CLI afterwards. Leave `DATABASE_URL`/`DATABASE_MIGRATION_URL` empty — the
+compose file builds them.
+
+```bash
+C="docker compose -f infrastructure/docker/docker-compose.production.yml --env-file .env"
+$C up -d --build                 # db → migrate (roles check + migrations) → app
+$C ps                            # migrate: Exited (0); app: healthy
+curl -fsS http://127.0.0.1:3000/api/ready
+```
+
+TLS with the bundled Nginx: put `fullchain.pem` and `privkey.pem` (e.g. from certbot) in a directory, set
+`TLS_CERT_DIR=/path/to/certs`, replace `crm.example.com` in `infrastructure/nginx/smart-sales-crm.conf`,
+then `$C --profile proxy up -d`. Using your own proxy instead: forward to `127.0.0.1:3000`, pass
+`X-Forwarded-For/Proto`, enable WebSocket upgrade on `/socket.io/`, allow 12 MB request bodies.
+
+First Super Admin (if no bootstrap variables were used):
+`$C run --rm migrate node scripts/create-platform-admin.js --email you@example.com --name "Your Name"` (password prompted).
+Then open `https://<domain>/admin/login`.
+
+**Verified in a test run of exactly this stack:** image build, migrations, bootstrap admin (skipped on the
+second start), `/api/health` + `/api/ready`, Super Admin login, company creation + invitation acceptance,
+owner and employee login, team management and permission denial, inbox and channel APIs, CSRF, file
+upload, authenticated Socket.IO and refusal of foreign origins, data and files persisting across
+`down`/`up`, `pg_dump`/`pg_restore` inside the db container (identical counts, FORCE RLS kept), Nginx
+config test, HTTP→HTTPS redirect, HTTPS/HTTP2 with security headers and WebSocket proxying.
+
+## A3. Linux server without Docker (systemd)
+
+1. Install Node.js 22.12+ and PostgreSQL 16; create roles/database (DATABASE.md §2).
+2. `sudo useradd --system --home /opt/smart-sales-crm sscrm`; copy the application to `/opt/smart-sales-crm`.
+3. As that user: `npm ci && npm run build && npm prune --omit=dev`.
+4. Environment in `/etc/smart-sales-crm.env` (`chmod 600`), with `DATABASE_MIGRATION_URL`, `APP_DB_ROLE`,
+   `APP_DB_PASSWORD`, `UPLOADS_DIR=/var/lib/smart-sales-crm/uploads`, `MEDIA_DIR=/var/lib/smart-sales-crm/media`, …
+5. `sudo install -d -o sscrm -g sscrm /var/lib/smart-sales-crm`; install
+   `infrastructure/deployment/systemd/smart-sales-crm.service`; `systemctl enable --now smart-sales-crm`.
+   `ExecStartPre` runs `prepare-database.js` (migrations) before every start.
+6. Put Nginx in front (same config with `server 127.0.0.1:3000;` as upstream).
+
+## A4. Container platforms and managed infrastructure
+
+Any platform that runs a container with a persistent volume (or S3) and a PostgreSQL service works
+(Kubernetes, ECS/Fargate, Cloud Run with min-instances ≥ 1, Azure Container Apps, Fly.io, DigitalOcean App
+Platform, Railway, Render, …):
+
+- Image: build from `Dockerfile`; command `node server/index.js`; port `3000`.
+- Release/pre-deploy step: `node scripts/prepare-database.js` (idempotent; or run it as an init container / job).
+- Health: liveness `/api/health`, readiness `/api/ready`. Graceful shutdown on SIGTERM within 40 s.
+- Keep at least one instance always running: background jobs and Socket.IO need a long-lived process
+  (scale-to-zero platforms pause jobs while idle).
+- Several instances: set `REALTIME_ADAPTER=postgres`, use sticky sessions (or WebSocket-only), store files in
+  S3 (`MEDIA_DRIVER=s3`; logos still use `UPLOADS_DIR`, so share that volume or accept per-instance logos),
+  optionally split `PROCESS_ROLE=web` / `worker`.
+- Managed PostgreSQL: direct connection for `DATABASE_MIGRATION_URL`; `?sslmode=require`.
+
+## A5. After deployment
+
+Follow `DEPLOYMENT-CHECKLIST.md`. Configure channel webhooks per §10.2 (Part B) with your domain, set
+SMTP, schedule backups (MAINTENANCE.md) and keep `APP_ENCRYPTION_KEYS` in a password manager.
+
+---
+
+# Part B — original notes (local development, constraints, platform-specific setups)
+
 
 Everything below works **without paid services, accounts or a credit card**. The same code runs
 unchanged on a laptop, on free hosting tiers and on a paid VPS — only environment variables differ.

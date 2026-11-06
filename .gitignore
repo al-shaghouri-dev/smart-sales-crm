@@ -28,3 +28,7 @@ Thumbs.db
 # Local work-in-progress archives and pause notes
 phase-*-wip.tar.gz
 PAUSE_REPORT_*.md
+
+# Handoff packaging output (generated)
+handoff-output/
+backups/
