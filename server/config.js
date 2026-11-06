@@ -1,11 +1,12 @@
 require('dotenv').config();
 const { loadKeyRingFromEnv } = require('./security/secrets');
+const { normalizePgUrl } = require('./db-url');
 
 const list = v => String(v || '').split(',').map(s => s.trim()).filter(Boolean);
 function deriveAppUrl(env) {
   if (!env.DATABASE_MIGRATION_URL || !env.APP_DB_ROLE || !env.APP_DB_PASSWORD) return undefined;
   try {
-    const u = new URL(env.DATABASE_MIGRATION_URL);
+    const u = new URL(normalizePgUrl(env.DATABASE_MIGRATION_URL));
     u.username = env.APP_DB_ROLE;
     u.password = env.APP_DB_PASSWORD;
     return u.toString();
@@ -29,10 +30,10 @@ function loadConfig(env = process.env) {
     trustProxy: env.TRUST_PROXY === 'true' ? 1 : (/^[1-9]$/.test(String(env.TRUST_PROXY || '')) ? Number(env.TRUST_PROXY) : false),
     // Application connection (restricted role, RLS applies). If unset, it is derived from the
     // owner connection with APP_DB_ROLE / APP_DB_PASSWORD (lets hosting blueprints wire it automatically).
-    databaseUrl: env.DATABASE_URL || deriveAppUrl(env),
+    databaseUrl: normalizePgUrl(env.DATABASE_URL) || deriveAppUrl(env),
     // Optional non-pooled connection for features needing a session-pinned connection
     // (pg-boss, LISTEN/NOTIFY). Use it when DATABASE_URL points at a transaction-mode pooler.
-    databaseDirectUrl: env.DATABASE_DIRECT_URL || env.DATABASE_URL || deriveAppUrl(env),
+    databaseDirectUrl: normalizePgUrl(env.DATABASE_DIRECT_URL || env.DATABASE_URL) || deriveAppUrl(env),
     uploadsDir: env.UPLOADS_DIR || require('path').join(__dirname, '..', 'uploads'),
     sessionTtlHours: Number(env.SESSION_TTL_HOURS || 12),
     loginRateLimit: Number(env.LOGIN_RATE_LIMIT || 10),

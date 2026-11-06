@@ -276,3 +276,25 @@ after 30 days. Both are acceptable only for a short demo, never for customers.
 - [ ] SMTP configured, or admins know links are shown once on screen.
 - [ ] A test backup was restored into a scratch database at least once.
 - [ ] Rotate keys when staff with access leave: `npm run secrets:rotate` (§5).
+
+## 11. Free testing setup: Vercel + Render Free + Neon Free
+
+For a **testing** environment only (never for customers):
+
+| Part | Host | Notes |
+|---|---|---|
+| Frontend (React build) | Vercel (Hobby) | `vercel.json` rewrites `/api`, `/socket.io`, `/webhooks`, `/uploads`, `/media` to the Render URL, so the browser sees one origin (cookies + CSRF unchanged). |
+| Backend (API, Socket.IO, webhooks, jobs) | Render free web service | **Sleeps after ~15 min idle**; the first request takes ~30–60 s; background jobs (sweepers, token refresh, subscription checks) do not run while asleep. No shell, no persistent disk. |
+| PostgreSQL | Neon free | Use the **direct** (non-pooled) connection string as `DATABASE_MIGRATION_URL`; the restricted app role is created automatically by `prepare-database.js`. |
+
+Settings on Render (`plan: free`, build `npm ci --include=dev && npm run build`, start `npm run start:render`):
+`NODE_ENV=production`, `PROCESS_ROLE=all`, `TRUST_PROXY=2` (Vercel + Render), `DATABASE_MIGRATION_URL` (Neon direct URL),
+`APP_DB_ROLE=sscrm_app`, `APP_DB_PASSWORD` (random), `APP_ENCRYPTION_KEYS` / `APP_ENCRYPTION_PRIMARY_KEY_ID`,
+`WEBHOOK_SECRET_KEY` (random), `APP_URL` and `PUBLIC_URL` = the **Vercel** URL, `CHANNEL_PROVIDERS=telegram`,
+`UPLOADS_DIR=/tmp/sscrm/uploads`, `MEDIA_DIR=/tmp/sscrm/media`, and for the first start only
+`BOOTSTRAP_ADMIN_EMAIL` / `BOOTSTRAP_ADMIN_PASSWORD` (creates the first Super Admin when none exists; remove them after signing in).
+
+**Temporary media storage:** without a persistent disk, uploaded logos and message attachments are stored
+under `/tmp` and are **lost whenever the service restarts, sleeps or redeploys** (messages remain; their
+attachments return 404). For durable files set `MEDIA_DRIVER=s3` with any S3-compatible bucket, or move to
+the paid Render plan with a disk (§10).
