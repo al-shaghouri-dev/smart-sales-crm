@@ -1,0 +1,19 @@
+# Never send secrets, local data or build artefacts into the image build context.
+.git
+.env
+.env.*
+!.env.example
+node_modules
+dist
+data
+uploads
+uploads-media
+public/uploads
+coverage
+*.log
+*.bundle
+*.tar.gz
+*.zip
+handoff-output
+PAUSE_REPORT_*.md
+.vercel

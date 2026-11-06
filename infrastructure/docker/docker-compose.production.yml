@@ -1,0 +1,85 @@
+# Smart Sales CRM — production stack for a single server (VPS / dedicated / any Docker host).
+#
+#   cp .env.example .env        # fill in the values (see documentation/ENVIRONMENT.md)
+#   docker compose -f infrastructure/docker/docker-compose.production.yml --env-file .env up -d --build
+#
+# Services: db (PostgreSQL 16) → migrate (one-shot: app role check + migrations) → app (API, frontend,
+# Socket.IO, jobs). Optional: `--profile proxy` adds Nginx with TLS on ports 80/443.
+# Passwords used inside connection URLs must be URL-safe (e.g. `openssl rand -hex 24`).
+name: smart-sales-crm
+
+x-app-env: &app-env
+  NODE_ENV: production
+  PROCESS_ROLE: all
+  PORT: "3000"
+  DATABASE_MIGRATION_URL: postgres://sscrm_owner:${SSCRM_OWNER_PASSWORD:?set SSCRM_OWNER_PASSWORD}@db:5432/${SSCRM_DB_NAME:-sscrm}
+  APP_DB_ROLE: sscrm_app
+  APP_DB_PASSWORD: ${SSCRM_APP_PASSWORD:?set SSCRM_APP_PASSWORD}
+  UPLOADS_DIR: /data/uploads
+  MEDIA_DIR: /data/media
+
+x-logging: &logging
+  driver: json-file
+  options: { max-size: "20m", max-file: "5" }
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD:?set POSTGRES_SUPERUSER_PASSWORD}
+      SSCRM_OWNER_PASSWORD: ${SSCRM_OWNER_PASSWORD}
+      SSCRM_APP_PASSWORD: ${SSCRM_APP_PASSWORD}
+      SSCRM_DB_NAME: ${SSCRM_DB_NAME:-sscrm}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./postgres-init.sh:/docker-entrypoint-initdb.d/10-init.sh:ro
+      - ../../backups:/backups
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ${SSCRM_DB_NAME:-sscrm}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    logging: *logging
+
+  migrate:
+    build: { context: ../.., dockerfile: Dockerfile }
+    image: smart-sales-crm:latest
+    command: ["node", "scripts/prepare-database.js"]
+    env_file: ../../.env
+    environment: *app-env
+    depends_on:
+      db: { condition: service_healthy }
+    restart: "no"
+    logging: *logging
+
+  app:
+    image: smart-sales-crm:latest
+    restart: unless-stopped
+    init: true
+    env_file: ../../.env
+    environment: *app-env
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+    ports:
+      - "${APP_BIND:-127.0.0.1}:${APP_PORT:-3000}:3000"
+    volumes:
+      - appdata:/data
+    stop_grace_period: 40s
+    logging: *logging
+
+  nginx:
+    profiles: ["proxy"]
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    depends_on: [app]
+    ports: ["80:80", "443:443"]
+    volumes:
+      - ../nginx/smart-sales-crm.conf:/etc/nginx/conf.d/default.conf:ro
+      - ${TLS_CERT_DIR:-../nginx/certs}:/etc/nginx/certs:ro
+    logging: *logging
+
+volumes:
+  pgdata:
+  appdata:

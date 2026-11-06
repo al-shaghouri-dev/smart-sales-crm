@@ -1,0 +1,26 @@
+# systemd unit for running Smart Sales CRM directly on a Linux server (without Docker).
+# Install: copy the app to /opt/smart-sales-crm, `npm ci --omit=dev && npm run build` (build needs dev deps:
+# run `npm ci && npm run build && npm prune --omit=dev`), put the environment in /etc/smart-sales-crm.env (chmod 600).
+[Unit]
+Description=Smart Sales CRM
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=sscrm
+Group=sscrm
+WorkingDirectory=/opt/smart-sales-crm
+EnvironmentFile=/etc/smart-sales-crm.env
+ExecStartPre=/usr/bin/node scripts/prepare-database.js
+ExecStart=/usr/bin/node server/index.js
+Restart=on-failure
+RestartSec=5
+KillSignal=SIGTERM
+TimeoutStopSec=40
+NoNewPrivileges=true
+ProtectSystem=full
+ReadWritePaths=/var/lib/smart-sales-crm
+
+[Install]
+WantedBy=multi-user.target
