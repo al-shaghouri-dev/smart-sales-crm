@@ -225,7 +225,7 @@ describe('Phase 3.1 infrastructure', { skip }, () => {
       await startRuntime();
       await startRuntime();
       const rows = await h.getDb().knex.raw('SELECT name, count(*)::int AS n FROM pgboss.schedule GROUP BY name ORDER BY name');
-      assert.deepEqual(rows.rows, [{ name: 'message.sweep', n: 1 }, { name: 'subscription.maintenance', n: 1 }, { name: 'webhook.cleanup', n: 1 }, { name: 'webhook.sweep', n: 1 }]);
+      assert.deepEqual(rows.rows, [{ name: 'channel.maintenance', n: 1 }, { name: 'message.sweep', n: 1 }, { name: 'subscription.maintenance', n: 1 }, { name: 'webhook.cleanup', n: 1 }, { name: 'webhook.sweep', n: 1 }]);
     });
 
     test('web role enqueues but does not process; worker role processes without HTTP', async () => {

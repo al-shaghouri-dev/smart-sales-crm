@@ -83,8 +83,8 @@ export default function Channels() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [oauthError]);
   const data = useLoader(async () => {
-    const [ch, pr] = await Promise.all([api.get('/api/channels'), api.get('/api/channels/providers')]);
-    return { channels: ch.channels, providers: pr.providers, usage: pr.usage };
+    const [ch, pr, no] = await Promise.all([api.get('/api/channels'), api.get('/api/channels/providers'), api.get('/api/notifications').catch(() => ({ notifications: [] }))]);
+    return { channels: ch.channels, providers: pr.providers, usage: pr.usage, alerts: no.notifications.filter(n => !n.read_at && n.type.startsWith('channel_')) };
   });
   const [connecting, setConnecting] = useState(null);
   const [removing, setRemoving] = useState(null);
@@ -108,6 +108,13 @@ export default function Channels() {
   return (
     <>
       <PageHeader title={t('channels.title')} subtitle={t('channels.subtitle')} />
+      {data.data.alerts.map(n => (
+        <div key={n.id} className="banner banner-warning" role="status">
+          <AlertTriangle size={16} aria-hidden />
+          <span>{t(`notifications.${n.type}`, { name: n.data.channelName, date: fmtDate(n.data.expiresAt, i18n.language) })}</span>
+          <button type="button" className="link-btn" onClick={async () => { await api.post(`/api/notifications/${n.id}/read`).catch(() => {}); data.reload(); }}>{t('channels.dismiss')}</button>
+        </div>
+      ))}
       <div className="stats">
         <div className="stat"><span className="stat-icon"><Plug size={18} aria-hidden /></span><span className="stat-label">{t('channels.usage')}</span>
           <span className="stat-value">{usage.max === null ? t('channels.usageUnlimited', { used: usage.used }) : t('channels.usageOf', { used: usage.used, max: usage.max })}</span></div>

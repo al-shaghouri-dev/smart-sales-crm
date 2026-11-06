@@ -8,6 +8,7 @@ const { createWebhookProcessor } = require('./webhooks/processor');
 const { createMailer } = require('./services/mailer');
 const { runSubscriptionMaintenance } = require('./services/subscriptions');
 const { conversationRoomAuthorizer } = require('./messaging/access');
+const { runChannelMaintenance } = require('./services/channel-maintenance');
 
 /**
  * Composes the application: HTTP + Socket.IO (web role) and background workers (worker role).
@@ -62,6 +63,7 @@ function createRuntime(config, options = {}) {
       await jobs.work('webhook.sweep', () => processor.sweep(jobs));
       await jobs.work('message.send', job => messaging.sendQueued(job.data.messageId, job.data.companyId), { localConcurrency: config.messaging?.sendConcurrency || 4 });
       await jobs.work('message.sweep', () => messaging.sweep());
+      await jobs.work('channel.maintenance', () => runChannelMaintenance({ db, config, providers, logger }));
       await jobs.work('webhook.cleanup', () => processor.cleanup());
       await jobs.work('subscription.maintenance', async () => {
         const platform = await db.withContext({}, trx => trx('platform_settings').where({ id: 1 }).first('app_name'));

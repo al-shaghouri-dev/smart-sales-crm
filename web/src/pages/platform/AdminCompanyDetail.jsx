@@ -10,6 +10,20 @@ import { Badge, Button, Card, EmptyState, ErrorState, Field, LinkDialog, Modal, 
 import { TIMEZONES } from '../../components/ui';
 import { SUB_TONES } from '../Billing';
 import { COMPANY_TONES } from './AdminOverview';
+import { ChannelTable, OutboundControls } from './AdminChannels';
+
+function CompanyChannels({ companyId }) {
+  const { t } = useTranslation();
+  const data = useLoader(() => api.get(`/api/platform/channels?companyId=${companyId}`), [companyId]);
+  return (
+    <div className="stack">
+      <OutboundControls companyId={companyId} />
+      <Card title={t('adminChannels.title')}>
+        {data.loading && !data.data ? <Spinner /> : data.error ? <ErrorState error={data.error} onRetry={data.reload} /> : <ChannelTable channels={data.data.channels} showCompany={false} />}
+      </Card>
+    </div>
+  );
+}
 
 const toInputDate = v => (v ? new Date(v).toISOString().slice(0, 10) : '');
 
@@ -183,7 +197,7 @@ export default function AdminCompanyDetail() {
       {company.status === 'suspended' && <div className="banner banner-danger">{t('admin.suspendedNotice', { date: fmtDate(company.suspendedAt, locale), reason: company.suspensionReason || '—' })}</div>}
 
       <div className="tabs" role="tablist">
-        {['subscription', 'profile', 'members', 'activity'].map(x => (
+        {['subscription', 'profile', 'members', 'channels', 'activity'].map(x => (
           <button key={x} role="tab" type="button" aria-selected={x === tab} className={`tab ${x === tab ? 'active' : ''}`} onClick={() => setParams({ tab: x })}>{t(`admin.tabs.${x}`)}</button>
         ))}
       </div>
@@ -233,6 +247,7 @@ export default function AdminCompanyDetail() {
           </div>
         </Card>
       )}
+      {tab === 'channels' && <CompanyChannels companyId={company.id} />}
       {tab === 'activity' && (
         <Card>
           {!activity.length ? <EmptyState>{t('audit.empty')}</EmptyState> : (

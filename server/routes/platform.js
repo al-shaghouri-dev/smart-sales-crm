@@ -95,6 +95,7 @@ function platformRoutes(deps) {
   router.use('/plans', require('./platform-plans')(deps));
   router.use('/registrations', require('./platform-registrations').registrationAdminRoutes(deps));
   router.use('/webhook-events', require('./platform-webhooks')(deps));
+  router.use('/channels', require('./platform-channels')(deps));
 
   return router;
 }

@@ -23,6 +23,7 @@ import AdminCompanies from './pages/platform/AdminCompanies';
 import AdminCompanyDetail from './pages/platform/AdminCompanyDetail';
 import AdminRegistrations from './pages/platform/AdminRegistrations';
 import AdminPlans from './pages/platform/AdminPlans';
+import AdminChannels from './pages/platform/AdminChannels';
 
 function Guard({ when, to = '/', children }) {
   return when ? children : <Navigate to={to} replace />;
@@ -74,6 +75,7 @@ export default function App() {
           <Route path="companies/:id" element={<AdminCompanyDetail />} />
           <Route path="registrations" element={<AdminRegistrations />} />
           <Route path="plans" element={<AdminPlans />} />
+          <Route path="channels" element={<AdminChannels />} />
           <Route path="settings" element={<PlatformBranding />} />
           <Route path="account" element={<Account />} />
           <Route path="login" element={<Navigate to="/admin" replace />} />

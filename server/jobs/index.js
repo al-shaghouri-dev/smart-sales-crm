@@ -36,6 +36,7 @@ function queueDefinitions(config) {
       expireInSeconds: 120
     },
     'message.sweep': { retryLimit: 1, expireInSeconds: 120 },
+    'channel.maintenance': { retryLimit: 1, retryDelay: 120, expireInSeconds: 900 },
     'webhook.sweep': { retryLimit: 1, expireInSeconds: 120 },
     'webhook.cleanup': { retryLimit: 1, expireInSeconds: 600 },
     'subscription.maintenance': { retryLimit: 2, retryDelay: 60, expireInSeconds: 600 }
@@ -46,6 +47,7 @@ function queueDefinitions(config) {
 const SCHEDULES = {
   'webhook.sweep': '*/5 * * * *',          // re-queue events whose job was lost
   'message.sweep': '*/2 * * * *',          // re-queue outbound messages whose job was lost
+  'channel.maintenance': '41 * * * *',     // token refresh / expiry alerts, hourly
   'webhook.cleanup': '17 3 * * *',         // retention clean-up, daily
   'subscription.maintenance': '7 * * * *'  // hourly (replaces the Phase 2 in-process timer)
 };

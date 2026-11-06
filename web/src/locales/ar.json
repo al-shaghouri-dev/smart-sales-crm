@@ -496,7 +496,8 @@
       "channel.connected": "ربط قناة",
       "channel.reconnected": "إعادة ربط قناة",
       "channel.disconnected": "فصل قناة",
-      "conversation.assigned": "إسناد محادثة"
+      "conversation.assigned": "إسناد محادثة",
+      "company.outbound_updated": "تعديل ضوابط الإرسال"
     }
   },
   "platform": {
@@ -648,7 +649,9 @@
   },
   "notifications": {
     "subscription_expiring": "ينتهي اشتراكك خلال {{count}} يوم ({{date}}).",
-    "subscription_expired": "انتهى اشتراكك في {{date}}. بياناتك محفوظة."
+    "subscription_expired": "انتهى اشتراكك في {{date}}. بياناتك محفوظة.",
+    "channel_needs_attention": "القناة «{{name}}» تحتاج إلى إعادة ربط.",
+    "channel_token_expiring": "تنتهي صلاحية رمز وصول «{{name}}» في {{date}}. أعد ربطها لتجنّب الانقطاع."
   },
   "plans": {
     "title": "الخطط",
@@ -763,7 +766,8 @@
       "subscription": "الاشتراك والمدفوعات",
       "profile": "الملف",
       "members": "الأعضاء",
-      "activity": "النشاط"
+      "activity": "النشاط",
+      "channels": "القنوات والإرسال"
     },
     "noSubscription": "لا يوجد اشتراك لهذه الشركة. عيّن خطة أدناه.",
     "assignPlan": "تعيين خطة",
@@ -956,6 +960,32 @@
       "accessToken": "رمز مستخدم نظام (وليس رمزاً مؤقتاً لمدة 24 ساعة)."
     },
     "connectSuccess": "تم ربط القناة",
-    "pickAccount": "اختر الحساب المراد ربطه"
+    "pickAccount": "اختر الحساب المراد ربطه",
+    "dismiss": "إخفاء"
+  },
+  "adminChannels": {
+    "title": "القنوات",
+    "subtitle": "حالة كل القنوات المتصلة لدى جميع الشركات.",
+    "outbound": "الإرسال الصادر",
+    "sentToday": "أُرسل اليوم",
+    "failedToday": "فشل اليوم",
+    "pausedNotice": "الإرسال متوقف لهذه الشركة. ما زالت الرسائل الواردة تُستقبل.",
+    "pause": "إيقاف الإرسال",
+    "resume": "استئناف الإرسال",
+    "dailyLimit": "حد الإرسال اليومي",
+    "none": "لا توجد قنوات مطابقة.",
+    "channel": "القناة",
+    "company": "الشركة",
+    "traffic": "آخر 24 ساعة",
+    "lastActivity": "آخر وارد / صادر",
+    "token": "انتهاء الرمز",
+    "noExpiry": "بلا انتهاء",
+    "paused": "الإرسال متوقف",
+    "attention": "تحتاج متابعة",
+    "queued": "رسائل في الطابور",
+    "enabledProviders": "المزوّدون المفعّلون",
+    "allLive": "كل القنوات الحية",
+    "provider": "المزوّد",
+    "allProviders": "كل المزوّدين"
   }
 }

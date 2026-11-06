@@ -496,7 +496,8 @@
       "channel.connected": "Channel connected",
       "channel.reconnected": "Channel reconnected",
       "channel.disconnected": "Channel disconnected",
-      "conversation.assigned": "Conversation assigned"
+      "conversation.assigned": "Conversation assigned",
+      "company.outbound_updated": "Changed outbound sending controls"
     }
   },
   "platform": {
@@ -648,7 +649,9 @@
   },
   "notifications": {
     "subscription_expiring": "Your subscription ends in {{count}} day(s) ({{date}}).",
-    "subscription_expired": "Your subscription expired on {{date}}. Your data is preserved."
+    "subscription_expired": "Your subscription expired on {{date}}. Your data is preserved.",
+    "channel_needs_attention": "The channel “{{name}}” needs to be reconnected.",
+    "channel_token_expiring": "The access token of “{{name}}” expires on {{date}}. Reconnect it to avoid interruption."
   },
   "plans": {
     "title": "Plans",
@@ -763,7 +766,8 @@
       "subscription": "Subscription & payments",
       "profile": "Profile",
       "members": "Members",
-      "activity": "Activity"
+      "activity": "Activity",
+      "channels": "Channels & sending"
     },
     "noSubscription": "This company has no subscription. Assign a plan below.",
     "assignPlan": "Assign a plan",
@@ -956,6 +960,32 @@
       "accessToken": "System User token (never a temporary 24-hour token)."
     },
     "connectSuccess": "Channel connected",
-    "pickAccount": "Choose the account to connect"
+    "pickAccount": "Choose the account to connect",
+    "dismiss": "Dismiss"
+  },
+  "adminChannels": {
+    "title": "Channels",
+    "subtitle": "Health of every connected channel across all companies.",
+    "outbound": "Outbound sending",
+    "sentToday": "Sent today",
+    "failedToday": "Failed today",
+    "pausedNotice": "Sending is paused for this company. Incoming messages are still received.",
+    "pause": "Pause sending",
+    "resume": "Resume sending",
+    "dailyLimit": "Daily sending limit",
+    "none": "No channels match.",
+    "channel": "Channel",
+    "company": "Company",
+    "traffic": "Last 24h",
+    "lastActivity": "Last in / out",
+    "token": "Token expiry",
+    "noExpiry": "No expiry",
+    "paused": "Sending paused",
+    "attention": "Needs attention",
+    "queued": "Messages in queue",
+    "enabledProviders": "Enabled providers",
+    "allLive": "All live channels",
+    "provider": "Provider",
+    "allProviders": "All providers"
   }
 }

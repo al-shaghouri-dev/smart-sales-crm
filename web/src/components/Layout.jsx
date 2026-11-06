@@ -81,6 +81,7 @@ export default function Layout() {
     { to: '/admin/companies', icon: Building2, label: t('nav.platformCompanies') },
     { to: '/admin/registrations', icon: Inbox, label: t('nav.registrations') },
     { to: '/admin/plans', icon: Layers, label: t('nav.plans') },
+    { to: '/admin/channels', icon: Plug, label: t('nav.channels') },
     { to: '/admin/settings', icon: Palette, label: t('nav.platformSettings') }
   ] : [];
 
