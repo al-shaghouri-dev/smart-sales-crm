@@ -1,7 +1,8 @@
 const { createFakeProvider } = require('./providers/fake');
+const { createTelegramProvider } = require('./providers/telegram');
 
 /** Providers planned for later phases. Enabling one before it exists fails loudly at start-up. */
-const PLANNED = { telegram: '3.3', messenger: '3.4', instagram: '3.5', whatsapp: '3.6' };
+const PLANNED = { messenger: '3.4', instagram: '3.5', whatsapp: '3.6' };
 
 /**
  * Build the enabled provider adapters from configuration (CHANNEL_PROVIDERS).
@@ -13,6 +14,8 @@ function createProviderRegistry(config, extra = []) {
     if (name === 'fake') {
       if (config.isProd) throw new Error('The fake channel provider cannot be enabled in production');
       adapters.set('fake', createFakeProvider({ secret: config.fakeProviderSecret }));
+    } else if (name === 'telegram') {
+      adapters.set('telegram', createTelegramProvider({ config }));
     } else if (PLANNED[name]) {
       throw new Error(`Channel provider "${name}" is not implemented yet (planned for Phase ${PLANNED[name]})`);
     } else {

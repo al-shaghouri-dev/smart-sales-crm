@@ -95,6 +95,19 @@ function createMessaging({ db, config, media, providers, jobs, getRealtime = () 
     return r.rows[0] || null;
   }
 
+  /** Decrypted credentials of a routed channel (adapters need them to download inbound media). */
+  async function getCredentials(route) {
+    return db.withContext({ companyId: route.company_id, system: true }, async trx => {
+      const channel = await trx('channels').where({ id: route.channel_id }).first();
+      return channel ? readCredentials(trx, config.keyRing, channel) : null;
+    });
+  }
+
+  /** Record a provider problem on the channel (e.g. revoked token seen while processing a webhook). */
+  async function flagRoute(route, error, status = 'needs_reconnect') {
+    await db.withContext({ companyId: route.company_id, system: true }, trx => flagChannel(trx, { id: route.channel_id, company_id: route.company_id }, { status, error }));
+  }
+
   // ------------------------------------------------------------------ media
   /** Store inbound media bytes (already downloaded by the adapter with SSRF protection). */
   async function storeInboundMedia(companyId, buffer, { name, contentType } = {}) {
@@ -312,7 +325,7 @@ function createMessaging({ db, config, media, providers, jobs, getRealtime = () 
   }
 
   return {
-    routeByAccount, routeById, recordInbound, recordStatus, storeInboundMedia, readAttachment,
+    routeByAccount, routeById, getCredentials, flagRoute, recordInbound, recordStatus, storeInboundMedia, readAttachment,
     enqueue, sendQueued, sweep, emitConversation, emitMessage, userIdsFor, previewOf, maxMediaBytes
   };
 }

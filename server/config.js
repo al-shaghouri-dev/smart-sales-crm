@@ -82,6 +82,15 @@ function loadConfig(env = process.env) {
         forcePathStyle: env.MEDIA_S3_FORCE_PATH_STYLE !== 'false'
       }
     },
+    // Public https origin that providers call (webhooks, OAuth redirects). Defaults to APP_URL.
+    publicUrl: (env.PUBLIC_URL || appUrl).replace(/\/+$/, ''),
+    // Server secret used to derive per-channel webhook secrets (e.g. Telegram secret_token).
+    // Required in production; a random per-process value is used in development.
+    webhookSecretKey: env.WEBHOOK_SECRET_KEY || (isProd ? '' : require('crypto').randomBytes(32).toString('base64')),
+    telegram: {
+      // Only for local mock servers in development/tests; production always uses the official API.
+      apiBase: (!isProd && env.TELEGRAM_API_BASE) ? env.TELEGRAM_API_BASE.replace(/\/+$/, '') : 'https://api.telegram.org'
+    },
     // Enabled provider adapters. Real providers arrive in Phase 3.3+; "fake" is for local tests only.
     channelProviders: list(env.CHANNEL_PROVIDERS),
     fakeProviderSecret: env.FAKE_PROVIDER_SECRET || ''
@@ -94,6 +103,10 @@ function loadConfig(env = process.env) {
   if (!['local', 's3'].includes(config.media.driver)) throw new Error('MEDIA_DRIVER must be local or s3');
   if (config.media.driver === 's3' && !config.media.s3.bucket) throw new Error('MEDIA_S3_BUCKET is required when MEDIA_DRIVER=s3');
   if (isProd && config.channelProviders.includes('fake')) throw new Error('The fake channel provider cannot be enabled in production');
+  if (isProd && config.channelProviders.some(p => p !== 'fake') && String(config.webhookSecretKey).length < 32) {
+    throw new Error('WEBHOOK_SECRET_KEY (at least 32 characters, e.g. openssl rand -base64 32) is required in production when channel providers are enabled');
+  }
+  if (isProd && config.channelProviders.length && !/^https:\/\//.test(config.publicUrl)) throw new Error('PUBLIC_URL (or APP_URL) must be https in production when channel providers are enabled');
   return config;
 }
 

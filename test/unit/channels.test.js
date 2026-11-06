@@ -53,7 +53,7 @@ describe('provider adapter contract & registry', () => {
   });
 
   test('registry: planned providers fail loudly; fake refused in production; unknown rejected', () => {
-    assert.throws(() => createProviderRegistry({ channelProviders: ['telegram'] }), /Phase 3\.3/);
+    assert.equal(createProviderRegistry({ channelProviders: ['telegram'], webhookSecretKey: 'k' }).has('telegram'), true);
     assert.throws(() => createProviderRegistry({ channelProviders: ['whatsapp'] }), /Phase 3\.6/);
     assert.throws(() => createProviderRegistry({ channelProviders: ['fake'], isProd: true, fakeProviderSecret: 's' }), /production/);
     assert.throws(() => createProviderRegistry({ channelProviders: ['nope'] }), /Unknown/);
