@@ -221,8 +221,8 @@ background jobs in one process, `PROCESS_ROLE=all`) with a 1 GB persistent disk,
 2. Fill the `sync: false` values:
    - `APP_ENCRYPTION_KEYS` = `k1:<output of openssl rand -base64 32>` and `APP_ENCRYPTION_PRIMARY_KEY_ID` = `k1`.
      **Store this key in a password manager as well** (restoring a backup without it means reconnecting every channel).
-   - `APP_URL` / `PUBLIC_URL`: leave empty for the first deploy, then set to the service URL
-     (e.g. `https://smart-sales-crm.onrender.com`) or your custom domain and redeploy.
+   - `APP_URL` / `PUBLIC_URL` are not needed: the service uses Render's `RENDER_EXTERNAL_URL`
+     (`https://<service>.onrender.com`). Add them only for a custom domain.
    - Meta / SMTP values only when those features are used.
 3. Deploy. On every start `npm run start:render` runs `scripts/prepare-database.js`, which creates the
    restricted role `sscrm_app` (NOBYPASSRLS) with the generated `APP_DB_PASSWORD`, applies pending

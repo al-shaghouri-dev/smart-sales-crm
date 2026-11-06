@@ -10,6 +10,16 @@
  */
 const knexFactory = require('knex');
 const path = require('path');
+const { Client } = require('pg');
+
+/** True when the application role can already sign in with this password. */
+async function canLogin(ownerUrl, role, password, ssl) {
+  const u = new URL(ownerUrl);
+  u.username = role;
+  u.password = password;
+  const client = new Client(ssl ? { connectionString: u.toString(), ssl } : { connectionString: u.toString() });
+  try { await client.connect(); return true; } catch { return false; } finally { await client.end().catch(() => {}); }
+}
 
 (async () => {
   const url = process.env.DATABASE_MIGRATION_URL;
@@ -25,8 +35,10 @@ const path = require('path');
       if (!password || password.length < 16) throw new Error('APP_DB_PASSWORD (16+ characters) is required to create the application role');
       await knex.raw(`CREATE ROLE ?? LOGIN PASSWORD '${password.replace(/'/g, "''")}' NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE`, [role]);
       console.log(`Created application role ${role}.`);
-    } else if (password) {
+    } else if (password && !(await canLogin(url, role, password, ssl))) {
+      // Only when the stored password no longer matches (e.g. it was regenerated in the dashboard).
       await knex.raw(`ALTER ROLE ?? WITH LOGIN PASSWORD '${password.replace(/'/g, "''")}'`, [role]);
+      console.log(`Updated the password of ${role}.`);
     }
     const flags = (await knex.raw('SELECT rolsuper, rolbypassrls FROM pg_roles WHERE rolname = ?', [role])).rows[0];
     if (flags.rolsuper || flags.rolbypassrls) throw new Error(`Role ${role} must not be SUPERUSER or BYPASSRLS (Row Level Security would not apply)`);
@@ -37,7 +49,9 @@ const path = require('path');
     const [batch, list] = await knex.migrate.latest();
     console.log(list.length ? `Applied ${list.length} migration(s) (batch ${batch}).` : 'Database schema is up to date.');
   } catch (error) {
-    console.error('Database preparation failed:', error.message.replace(/postgres(ql)?:\/\/\S+/g, '[url]'));
+    let message = String(error.message || error).replace(/postgres(ql)?:\/\/\S+/g, '[url]').replace(/PASSWORD\s+'(?:[^']|'')*'/gi, "PASSWORD '[redacted]'");
+    if (password) message = message.split(password).join('[redacted]');
+    console.error('Database preparation failed:', message);
     process.exitCode = 1;
   } finally {
     await knex.destroy();

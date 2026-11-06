@@ -38,11 +38,8 @@ services:
         value: sscrm_app
       - key: APP_DB_PASSWORD
         generateValue: true
-      # Public address (set after the first deploy, e.g. https://smart-sales-crm.onrender.com or your domain).
-      - key: APP_URL
-        sync: false
-      - key: PUBLIC_URL
-        sync: false
+      # Public address: defaults to Render's RENDER_EXTERNAL_URL (https://<service>.onrender.com).
+      # Set APP_URL / PUBLIC_URL in the dashboard only when you add a custom domain.
       # Encryption of channel credentials: "id:base64key" — generate with `openssl rand -base64 32`.
       # Back it up outside Render; losing it means every channel must be reconnected.
       - key: APP_ENCRYPTION_KEYS

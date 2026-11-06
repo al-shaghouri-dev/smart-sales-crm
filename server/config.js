@@ -17,7 +17,8 @@ function loadConfig(env = process.env) {
   const nodeEnv = env.NODE_ENV || 'development';
   const isProd = nodeEnv === 'production';
   const port = Number(env.PORT || 3000);
-  const appUrl = (env.APP_URL || `http://localhost:${port}`).replace(/\/+$/, '');
+  // On Render, RENDER_EXTERNAL_URL (https://<service>.onrender.com) is provided automatically.
+  const appUrl = (env.APP_URL || env.RENDER_EXTERNAL_URL || `http://localhost:${port}`).replace(/\/+$/, '');
   const config = {
     env: nodeEnv,
     isProd,
