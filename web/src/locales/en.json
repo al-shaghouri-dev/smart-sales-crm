@@ -146,7 +146,11 @@
       "account_in_use": "This account is already connected to another workspace.",
       "provider_not_allowed": "Your plan does not include this channel type.",
       "plan_limit": "Your plan's channel limit has been reached.",
-      "encryption_unavailable": "Credential encryption is not configured on the server."
+      "encryption_unavailable": "Credential encryption is not configured on the server.",
+      "oauth_expired": "This connection request expired. Start again.",
+      "oauth_invalid_state": "The connection could not be verified. Start again from this page.",
+      "oauth_cancelled": "The connection was cancelled.",
+      "oauth_no_accounts": "No accounts with messaging access were found."
     },
     "conversations": {
       "not_found": "Conversation not found.",
@@ -159,7 +163,8 @@
       "media_unsupported": "This channel does not support attachments.",
       "window_closed": "The reply window for this conversation has closed.",
       "not_retryable": "Only failed messages can be retried.",
-      "daily_limit": "The daily sending limit for this workspace has been reached."
+      "daily_limit": "The daily sending limit for this workspace has been reached.",
+      "templates_unsupported": "This channel does not support templates."
     },
     "provider": {
       "rate_limited": "The provider is rate limiting messages. It will be retried.",
@@ -178,7 +183,8 @@
       "media_too_large": "The attachment exceeds the provider's size limit.",
       "unsupported_media": "The provider does not accept this attachment type.",
       "template_required": "Outside the 24-hour window a pre-approved template is required.",
-      "conflict": "Another app is receiving this bot's updates."
+      "conflict": "Another app is receiving this bot's updates.",
+      "template_invalid": "The template or its parameters were rejected by WhatsApp."
     },
     "channel": {
       "disconnected": "The channel was disconnected.",
@@ -188,6 +194,22 @@
     "send": {
       "unknown_outcome": "Delivery could not be confirmed; check with the customer before resending.",
       "error": "The message could not be sent."
+    },
+    "meta": {
+      "not_configured": "Meta integration is not configured on this platform yet.",
+      "deauthorized": "Access was removed in Facebook/Instagram. Reconnect the channel."
+    },
+    "instagram": {
+      "not_professional": "Only Instagram professional (Business or Creator) accounts can be connected."
+    },
+    "telegram": {
+      "webhook_errors": "Telegram reported recent webhook delivery errors.",
+      "public_url_required": "A public HTTPS address is required for Telegram webhooks.",
+      "webhook_secret_missing": "The webhook secret is not configured on the server."
+    },
+    "whatsapp": {
+      "embedded_signup_disabled": "WhatsApp Embedded Signup is not enabled yet.",
+      "quality_low": "WhatsApp rates this number's quality as low."
     }
   },
   "auth": {
@@ -859,7 +881,11 @@
     "selectBody": "Choose a conversation from the list to read and reply.",
     "noChannelsTitle": "No channels connected yet",
     "noChannelsBody": "Connect a messaging channel to start receiving customer conversations here.",
-    "connectChannel": "Connect a channel"
+    "connectChannel": "Connect a channel",
+    "templates": "Approved templates",
+    "noTemplates": "No approved templates found for this number.",
+    "chooseTemplate": "Choose a template",
+    "sendTemplate": "Send a template"
   },
   "channels": {
     "title": "Channels",
@@ -914,7 +940,8 @@
     },
     "help": {
       "telegram": "1. Open @BotFather in Telegram and send /newbot.\n2. Choose a name and username for your bot.\n3. Copy the token BotFather gives you and paste it below.",
-      "fake": "Simulated channel for local testing only."
+      "fake": "Simulated channel for local testing only.",
+      "whatsapp": "Requires an existing WhatsApp Business Account on the Cloud API.\nEnter the Phone number ID and WhatsApp Business Account ID from Meta Business Manager, and a permanent System User access token with whatsapp_business_messaging and whatsapp_business_management."
     },
     "fields": {
       "token": "Bot token",
@@ -925,8 +952,10 @@
       "accessToken": "Access token"
     },
     "fieldHints": {
-      "token": "Looks like 123456789:AA…"
+      "token": "Looks like 123456789:AA…",
+      "accessToken": "System User token (never a temporary 24-hour token)."
     },
-    "connectSuccess": "Channel connected"
+    "connectSuccess": "Channel connected",
+    "pickAccount": "Choose the account to connect"
   }
 }

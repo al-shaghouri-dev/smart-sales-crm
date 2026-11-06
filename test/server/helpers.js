@@ -38,7 +38,7 @@ async function setupDatabase() {
 }
 
 async function resetDatabase() {
-  await owner.raw('TRUNCATE messages, conversation_assignments, conversations, contact_identities, contacts, channel_credentials, channels, webhook_events, socket_io_attachments, notifications, auth_tokens, payments, subscriptions, registration_requests, plans, audit_logs, sessions, company_memberships, role_permissions, roles, company_settings, company_branding, companies, users RESTART IDENTITY CASCADE');
+  await owner.raw('TRUNCATE meta_data_deletions, channel_oauth_sessions, messages, conversation_assignments, conversations, contact_identities, contacts, channel_credentials, channels, webhook_events, socket_io_attachments, notifications, auth_tokens, payments, subscriptions, registration_requests, plans, audit_logs, sessions, company_memberships, role_permissions, roles, company_settings, company_branding, companies, users RESTART IDENTITY CASCADE');
   // pg-boss tables are owned by the application role (it installs them at start-up).
   await db.knex.raw(`DO $$ BEGIN IF to_regclass('pgboss.job') IS NOT NULL THEN DELETE FROM pgboss.job; END IF; END $$`);
   await owner.transaction(async trx => {

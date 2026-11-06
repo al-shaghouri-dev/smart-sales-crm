@@ -6,7 +6,7 @@ import { useApp } from '../context/AppContext';
 import { api } from '../lib/api';
 import { errorMessage } from '../lib/i18n';
 import { followResource, onRealtime } from '../lib/realtime';
-import { Badge, Button, EmptyState, ErrorState, IconButton, Spinner, useToast } from '../components/ui';
+import { Badge, Button, EmptyState, ErrorState, IconButton, Modal, Spinner, useToast } from '../components/ui';
 
 const initials = name => String(name || '').trim().split(/\s+/).slice(0, 2).map(w => w[0] || '').join('').toUpperCase() || '•';
 const newClientId = () => (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`).replace(/[^A-Za-z0-9_-]/g, '');
@@ -120,6 +120,41 @@ function ConversationList({ items, loading, error, reload, selectedId, onSelect,
   );
 }
 
+// ---------------------------------------------------------------- approved templates (WhatsApp)
+function TemplateModal({ conversation, onClose, onSent }) {
+  const { t } = useTranslation();
+  const toast = useToast();
+  const [state, setState] = useState({ loading: true, items: [], error: null });
+  const [chosen, setChosen] = useState(null);
+  const [params, setParams] = useState([]);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => { api.get(`/api/channels/${conversation.channel.id}/templates`).then(r => setState({ loading: false, items: r.templates })).catch(error => setState({ loading: false, items: [], error })); }, [conversation.channel.id]);
+  const preview = chosen ? chosen.body.replace(/\{\{(\d+)\}\}/g, (_, n) => params[Number(n) - 1] || `{{${n}}}`) : '';
+  async function send() {
+    setBusy(true);
+    try {
+      const r = await api.post(`/api/conversations/${conversation.id}/messages`, { template: { name: chosen.name, language: chosen.language, params }, templatePreview: preview, clientMessageId: newClientId() });
+      onSent(r.message); onClose();
+    } catch (err) { toast.error(errorMessage(t, err)); } finally { setBusy(false); }
+  }
+  return (
+    <Modal title={t('inbox.templates')} onClose={onClose} footer={<><Button onClick={onClose}>{t('common.cancel')}</Button>
+      <Button variant="primary" disabled={!chosen || params.some(p => !p.trim())} loading={busy} onClick={send}>{t('inbox.send')}</Button></>}>
+      {state.loading ? <Spinner /> : state.error ? <div className="alert alert-error">{errorMessage(t, state.error)}</div> : !state.items.length ? <p className="muted">{t('inbox.noTemplates')}</p> : (
+        <div className="stack">
+          <select value={chosen ? `${chosen.name}|${chosen.language}` : ''} aria-label={t('inbox.templates')}
+            onChange={e => { const x = state.items.find(i => `${i.name}|${i.language}` === e.target.value); setChosen(x || null); setParams(Array(x?.params || 0).fill('')); }}>
+            <option value="">{t('inbox.chooseTemplate')}</option>
+            {state.items.map(i => <option key={`${i.name}|${i.language}`} value={`${i.name}|${i.language}`}>{i.name} · {i.language}</option>)}
+          </select>
+          {params.map((p, i) => <input key={i} value={p} dir="auto" placeholder={`{{${i + 1}}}`} onChange={e => setParams(list => list.map((x, j) => (j === i ? e.target.value : x)))} />)}
+          {chosen && <div className="bubble template-preview" dir="auto">{preview}</div>}
+        </div>
+      )}
+    </Modal>
+  );
+}
+
 // ---------------------------------------------------------------- thread column
 function Thread({ conversation, onBack, onToggleDetails, onChanged }) {
   const { t, i18n } = useTranslation();
@@ -132,6 +167,7 @@ function Thread({ conversation, onBack, onToggleDetails, onChanged }) {
   const [sending, setSending] = useState(false);
   const [quick, setQuick] = useState(null);
   const [showQuick, setShowQuick] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
   const scroller = useRef(null);
   const fileInput = useRef(null);
   const id = conversation.id;
@@ -249,8 +285,10 @@ function Thread({ conversation, onBack, onToggleDetails, onChanged }) {
       {canReply && (
         <form className="composer" onSubmit={send}>
           {(windowClosed || channelDown) && (
-            <div className="alert alert-info composer-note"><AlertCircle size={16} aria-hidden />{channelDown ? t('inbox.channelDown') : t('inbox.windowClosed', { hours: conversation.replyWindow.hours })}</div>
+            <div className="alert alert-info composer-note"><AlertCircle size={16} aria-hidden />{channelDown ? t('inbox.channelDown') : t('inbox.windowClosed', { hours: conversation.replyWindow.hours })}
+              {!channelDown && conversation.channel.templates && <Button size="sm" variant="primary" type="button" onClick={() => setShowTemplates(true)}>{t('inbox.sendTemplate')}</Button>}</div>
           )}
+          {showTemplates && <TemplateModal conversation={conversation} onClose={() => setShowTemplates(false)} onSent={m => { upsert(m); scrollToEnd(); }} />}
           {file && (
             <div className="composer-file"><Paperclip size={14} aria-hidden /><span dir="auto">{file.name}</span>
               <IconButton label={t('common.remove')} onClick={() => setFile(null)}><X size={14} /></IconButton></div>

@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Activity, AlertTriangle, CheckCircle2, Link2, Plug, RefreshCw, Trash2 } from 'lucide-react';
 import { api } from '../lib/api';
@@ -41,9 +42,46 @@ function ConnectModal({ provider, onClose, onDone }) {
   );
 }
 
+function OAuthPicker({ sessionId, onClose, onDone }) {
+  const { t } = useTranslation();
+  const toast = useToast();
+  const [state, setState] = useState({ loading: true, session: null, error: null });
+  const [busy, setBusy] = useState(null);
+  useEffect(() => { api.get(`/api/channels/oauth/sessions/${sessionId}`).then(r => setState({ loading: false, session: r.session })).catch(error => setState({ loading: false, error })); }, [sessionId]);
+  async function pick(a) {
+    setBusy(a.externalAccountId);
+    try {
+      const r = await api.post(`/api/channels/oauth/sessions/${sessionId}/connect`, { externalAccountId: a.externalAccountId });
+      toast.success(r.reconnected ? t('channels.reconnected') : t('channels.connectSuccess'));
+      onDone();
+    } catch (err) { toast.error(errorMessage(t, err)); } finally { setBusy(null); }
+  }
+  return (
+    <Modal title={t('channels.pickAccount')} onClose={onClose} footer={<Button onClick={onClose}>{t('common.close')}</Button>}>
+      {state.loading ? <Spinner /> : state.error ? <div className="alert alert-error">{errorMessage(t, state.error)}</div> : (
+        <ul className="channel-list">
+          {state.session.accounts.map(a => (
+            <li key={a.externalAccountId} className="channel-row">
+              <div className="row"><ProviderBadge provider={state.session.provider} /><strong dir="auto">{a.displayName}</strong></div>
+              <Button size="sm" variant="primary" loading={busy === a.externalAccountId} onClick={() => pick(a)}>{t('channels.connect')}</Button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Modal>
+  );
+}
+
 export default function Channels() {
   const { t, i18n } = useTranslation();
   const toast = useToast();
+  const [params, setParams] = useSearchParams();
+  const oauthSession = params.get('oauth');
+  const oauthError = params.get('oauth_error');
+  useEffect(() => {
+    if (oauthError) { toast.error(t(`errors.${oauthError}`, { defaultValue: t('errors.common.server_error') })); setParams({}, { replace: true }); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [oauthError]);
   const data = useLoader(async () => {
     const [ch, pr] = await Promise.all([api.get('/api/channels'), api.get('/api/channels/providers')]);
     return { channels: ch.channels, providers: pr.providers, usage: pr.usage };
@@ -122,6 +160,7 @@ export default function Channels() {
         </div>
       </Card>
 
+      {oauthSession && <OAuthPicker sessionId={oauthSession} onClose={() => setParams({}, { replace: true })} onDone={() => { setParams({}, { replace: true }); data.reload(); }} />}
       {connecting && <ConnectModal provider={connecting} onClose={() => setConnecting(null)} onDone={data.reload} />}
       {removing && (
         <ConfirmDialog title={t('channels.disconnectTitle')} body={t('channels.disconnectBody', { name: removing.displayName })} danger confirmLabel={t('channels.disconnect')}

@@ -46,7 +46,7 @@ module.exports = function conversationRoutes({ db, config, providers, messaging,
       'ct.display_name as contact_name', 'ct.phone as contact_phone', 'ct.email as contact_email',
       'ci.profile as identity_profile', 'ci.external_user_id as identity_external_id', 'au.name as assignee_name');
 
-  const out = c => conversationOut(c, { windowHours: windowHoursFor(c.channel_provider) });
+  const out = c => conversationOut(c, { windowHours: windowHoursFor(c.channel_provider), templates: Boolean(providers.get(c.channel_provider)?.capabilities?.templates) });
 
   async function loadVisible(trx, req, id, { lock = false } = {}) {
     const q = scopeConversations(trx('conversations as c').where('c.id', v.uuid(id)), scopeOf(req));
@@ -149,7 +149,15 @@ module.exports = function conversationRoutes({ db, config, providers, messaging,
     const clientMessageId = b.clientMessageId ? v.str(b.clientMessageId, { field: 'clientMessageId', max: 80 }) : null;
     if (clientMessageId && !/^[A-Za-z0-9_-]{8,80}$/.test(clientMessageId)) throw badRequest('validation.invalid', 'Invalid clientMessageId', { field: 'clientMessageId' });
     const file = req.file ? inspectUpload(req.file, { maxBytes: messaging.maxMediaBytes }) : null;
-    if (!text && !file) throw badRequest('messages.empty', 'Write a message or attach a file');
+    let template = null;
+    if (b.template) {
+      const t = typeof b.template === 'string' ? (() => { try { return JSON.parse(b.template); } catch { return null; } })() : b.template;
+      if (!t || !/^[a-z0-9_]{1,512}$/.test(String(t.name || '')) || !/^[A-Za-z_]{2,15}$/.test(String(t.language || ''))) throw badRequest('validation.invalid', 'Invalid template', { field: 'template' });
+      const params = Array.isArray(t.params) ? t.params.slice(0, 20).map(x => String(x).slice(0, 1000)) : [];
+      template = { name: t.name, language: t.language, params };
+      if (file || text) throw badRequest('validation.invalid', 'A template message cannot include text or files', { field: 'template' });
+    }
+    if (!text && !file && !template) throw badRequest('messages.empty', 'Write a message or attach a file');
 
     // 1) Policy checks (visibility, channel state, plan, provider window, kill switch).
     const pre = await tenant(req, async trx => {
@@ -171,8 +179,10 @@ module.exports = function conversationRoutes({ db, config, providers, messaging,
       if (!adapter || adapter.capabilities?.outbound === false) throw conflict('messages.channel_unavailable', 'This channel is not available');
       if (!providerAllowed(await planFor(trx, req.company.id), channel.provider)) throw forbidden('channels.provider_not_allowed', 'Your plan does not include this channel type');
       if (file && !adapter.capabilities?.media) throw badRequest('messages.media_unsupported', 'This channel does not support attachments');
+      if (template && !adapter.capabilities?.templates) throw badRequest('messages.templates_unsupported', 'This channel does not support templates');
       const hours = adapter.capabilities?.replyWindowHours;
-      if (hours && (!c.last_inbound_at || new Date(c.last_inbound_at).getTime() + hours * 3600 * 1000 < Date.now())) {
+      // Approved templates are the only messages allowed outside the provider's window.
+      if (hours && !template && (!c.last_inbound_at || new Date(c.last_inbound_at).getTime() + hours * 3600 * 1000 < Date.now())) {
         throw conflict('messages.window_closed', 'The reply window for this conversation has closed');
       }
       return { conversation: c, channel };
@@ -185,20 +195,21 @@ module.exports = function conversationRoutes({ db, config, providers, messaging,
       const stored = await media.put({ companyId: req.company.id, buffer: req.file.buffer, ext: file.ext, contentType: file.mime });
       attachments = [{ id: require('crypto').randomUUID(), key: stored.key, name: file.name, contentType: file.mime, size: stored.size, kind: file.kind, inline: file.inline }];
     }
-    const type = file ? (file.kind === 'image' ? 'image' : file.kind === 'audio' ? 'audio' : file.kind === 'video' ? 'video' : 'file') : 'text';
+    const type = template ? 'template' : file ? (file.kind === 'image' ? 'image' : file.kind === 'audio' ? 'audio' : file.kind === 'video' ? 'video' : 'file') : 'text';
+    const bodyText = template ? (v.str(b.templatePreview, { field: 'templatePreview', max: 1024 }) || `[${template.name}]`) : text;
 
     // 3) Insert the queued message (idempotent on clientMessageId) and update the conversation.
     const created = await tenant(req, async trx => {
       const ins = await trx.raw(`
-        INSERT INTO messages (company_id, conversation_id, channel_id, direction, sender_type, sender_membership_id, type, body, attachments, client_message_id, status)
-        VALUES (?, ?, ?, 'out', 'member', ?, ?, ?, ?::jsonb, ?, 'queued')
+        INSERT INTO messages (company_id, conversation_id, channel_id, direction, sender_type, sender_membership_id, type, body, attachments, client_message_id, status, template)
+        VALUES (?, ?, ?, 'out', 'member', ?, ?, ?, ?::jsonb, ?, 'queued', ?::jsonb)
         ON CONFLICT (conversation_id, client_message_id) WHERE client_message_id IS NOT NULL DO NOTHING
         RETURNING *`,
-      [req.company.id, pre.conversation.id, pre.channel.id, req.membership.id, type, text || null, JSON.stringify(attachments), clientMessageId]);
+      [req.company.id, pre.conversation.id, pre.channel.id, req.membership.id, type, bodyText || null, JSON.stringify(attachments), clientMessageId, template ? JSON.stringify(template) : null]);
       const message = ins.rows[0];
       if (!message) return { existing: await trx('messages').where({ conversation_id: pre.conversation.id, client_message_id: clientMessageId }).first() };
       const [conv] = await trx('conversations').where({ id: pre.conversation.id }).update({
-        last_message_preview: messaging.previewOf(text, attachments), last_message_at: message.created_at, unread_count: 0,
+        last_message_preview: messaging.previewOf(bodyText, attachments), last_message_at: message.created_at, unread_count: 0,
         status: trx.raw("CASE WHEN status = 'closed' THEN 'open' ELSE status END"), updated_at: new Date()
       }).returning('*');
       return { message: { ...message, sender_name: req.user.name }, emit: await notify(trx, req, conv) };

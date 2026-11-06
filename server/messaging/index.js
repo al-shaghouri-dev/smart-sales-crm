@@ -121,6 +121,40 @@ function createMessaging({ db, config, media, providers, jobs, getRealtime = () 
     return { id, key: stored.key, name: safeName(name, `file.${ext}`), contentType: mime, size: stored.size, kind: type ? type.kind : 'file', inline: Boolean(type?.inline) };
   }
 
+  /**
+   * Short-lived public URL for one stored attachment (providers such as Instagram fetch media by
+   * URL). HMAC-signed with WEBHOOK_SECRET_KEY, bound to the storage key, expires after ttl seconds.
+   */
+  function signedMediaUrl(attachment, ttlSeconds = 900) {
+    if (!attachment?.key || !config.webhookSecretKey) return null;
+    const payload = Buffer.from(JSON.stringify({ k: attachment.key, e: Math.floor(Date.now() / 1000) + ttlSeconds, t: attachment.contentType || 'application/octet-stream' })).toString('base64url');
+    const sig = crypto.createHmac('sha256', String(config.webhookSecretKey)).update(`media|${payload}`).digest('base64url');
+    return `${(config.publicUrl || config.appUrl || '').replace(/\/+$/, '')}/media/${payload}.${sig}`;
+  }
+  function verifyMediaToken(token) {
+    const [payload, sig] = String(token || '').split('.');
+    if (!payload || !sig || !config.webhookSecretKey) return null;
+    const expected = crypto.createHmac('sha256', String(config.webhookSecretKey)).update(`media|${payload}`).digest('base64url');
+    if (sig.length !== expected.length || !crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) return null;
+    try {
+      const data = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
+      return data.e > Date.now() / 1000 ? data : null;
+    } catch { return null; }
+  }
+
+  /** Messenger-style read watermark: outbound messages to this contact sent before it are read. */
+  async function recordReadUpTo(route, externalUserId, watermark) {
+    const when = new Date(Number(watermark));
+    if (!Number.isFinite(when.getTime())) return 0;
+    const rows = await db.withContext({ companyId: route.company_id, system: true }, async trx => trx('messages as m')
+      .whereIn('m.conversation_id', trx('conversations as c').join('contact_identities as ci', 'ci.id', 'c.identity_id')
+        .where({ 'c.channel_id': route.channel_id, 'ci.external_user_id': String(externalUserId) }).select('c.id'))
+      .where('m.direction', 'out').whereIn('m.status', ['sent', 'delivered']).where('m.sent_at', '<=', when)
+      .update({ status: 'read', read_at: when, delivered_at: trx.raw('COALESCE(delivered_at, ?)', [when]), updated_at: new Date() }).returning('*'));
+    for (const m of rows) emitMessage(route.company_id, m.conversation_id, 'message:updated', m);
+    return rows.length;
+  }
+
   async function readAttachment(attachment) {
     if (!attachment?.key) return null;
     return media.get(attachment.key);
@@ -279,7 +313,7 @@ function createMessaging({ db, config, media, providers, jobs, getRealtime = () 
 
     try {
       const attachments = (message.attachments || []).map(a => ({
-        id: a.id, name: a.name, contentType: a.contentType, size: a.size, kind: a.kind, read: () => readAttachment(a)
+        id: a.id, key: a.key, name: a.name, contentType: a.contentType, size: a.size, kind: a.kind, read: () => readAttachment(a)
       }));
       const result = await adapter.sendMessage({
         messageId: message.id,
@@ -287,10 +321,11 @@ function createMessaging({ db, config, media, providers, jobs, getRealtime = () 
         text: message.body || '',
         type: message.type,
         attachments,
+        template: message.template || null,
         channel: { id: channel.id, externalAccountId: channel.external_account_id, meta: channel.external_meta || {} },
         credentials: claimed.credentials,
         conversation: { lastInboundAt: conversation.last_inbound_at }
-      }, { logger, config });
+      }, { logger, config, messaging: self });
       const now = new Date();
       const row = await db.withContext({ companyId, system: true }, async trx => {
         const [m] = await trx('messages').where({ id: message.id }).update({
@@ -324,10 +359,11 @@ function createMessaging({ db, config, media, providers, jobs, getRealtime = () 
     return { requeued: stale.length, failedUnknown: stuck };
   }
 
-  return {
-    routeByAccount, routeById, getCredentials, flagRoute, recordInbound, recordStatus, storeInboundMedia, readAttachment,
+  const self = {
+    routeByAccount, routeById, getCredentials, flagRoute, recordInbound, recordReadUpTo, signedMediaUrl, verifyMediaToken, recordStatus, storeInboundMedia, readAttachment,
     enqueue, sendQueued, sweep, emitConversation, emitMessage, userIdsFor, previewOf, maxMediaBytes
   };
+  return self;
 }
 
 module.exports = { createMessaging, classifySendError, previewOf, TYPES };

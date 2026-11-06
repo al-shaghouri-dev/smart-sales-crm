@@ -13,6 +13,7 @@ function messageOut(m) {
     type: m.type,
     body: m.body,
     attachments: (Array.isArray(m.attachments) ? m.attachments : []).map(attachmentOut),
+    template: m.template ? { name: m.template.name, language: m.template.language } : null,
     status: m.status,
     errorCode: m.error_code,
     clientMessageId: m.client_message_id,
@@ -24,7 +25,7 @@ function messageOut(m) {
 }
 
 /** `windowHours` comes from the provider adapter (null = no reply window). */
-function conversationOut(c, { windowHours = null, now = Date.now() } = {}) {
+function conversationOut(c, { windowHours = null, templates = false, now = Date.now() } = {}) {
   let replyWindow = null;
   if (windowHours) {
     const expiresAt = c.last_inbound_at ? new Date(new Date(c.last_inbound_at).getTime() + windowHours * 3600 * 1000) : null;
@@ -42,7 +43,7 @@ function conversationOut(c, { windowHours = null, now = Date.now() } = {}) {
     createdAt: c.created_at,
     assignedMembershipId: c.assigned_membership_id,
     assigneeName: c.assignee_name || null,
-    channel: { id: c.channel_id, provider: c.channel_provider, displayName: c.channel_name, status: c.channel_status },
+    channel: { id: c.channel_id, provider: c.channel_provider, displayName: c.channel_name, status: c.channel_status, templates },
     contact: { id: c.contact_id, displayName: c.contact_name, phone: c.contact_phone || null, email: c.contact_email || null },
     identity: { id: c.identity_id, username: c.identity_profile?.username || null, externalUserId: c.identity_external_id },
     replyWindow

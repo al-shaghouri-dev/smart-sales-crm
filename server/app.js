@@ -80,11 +80,22 @@ function createApp(config, options = {}) {
   // API responses (some carry one-time links) must never be stored by browsers or proxies.
   app.use('/api', (_req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
   app.use('/api', rateLimit({ windowMs: 60 * 1000, limit: options.apiRateLimit || 600, standardHeaders: 'draft-7', legacyHeaders: false }));
+  // Short-lived signed media links for providers that fetch attachments by URL (Instagram, WhatsApp).
+  app.get('/media/:token', async (req, res) => {
+    const data = messaging.verifyMediaToken(req.params.token);
+    if (!data) return res.status(404).end();
+    try {
+      const bytes = await media.get(data.k);
+      res.set({ 'Content-Type': data.t, 'X-Content-Type-Options': 'nosniff', 'Cache-Control': 'private, max-age=60', 'Content-Security-Policy': "default-src 'none'; sandbox" });
+      res.send(bytes);
+    } catch { res.status(404).end(); }
+  });
   app.use('/uploads', express.static(config.uploadsDir, { dotfiles: 'deny', index: false, fallthrough: false }));
   app.use(loadSession(db));
   // Expired/suspended subscriptions: read-only or billing-only access to workspace APIs (never data deletion).
   app.use(['/api/company', '/api/team', '/api/roles', '/api/audit', '/api/billing', '/api/notifications', '/api/conversations', '/api/channels'], subscriptionGuard);
 
+  app.use('/api/public/meta', require('./routes/meta-callbacks')(deps));
   app.use('/api/public', require('./routes/platform').publicRoutes(deps));
   app.use('/api/public', require('./routes/platform-registrations').publicRegistrationRoutes(deps));
   app.use('/api/auth', require('./routes/auth')(deps));

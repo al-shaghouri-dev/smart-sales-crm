@@ -91,6 +91,21 @@ function loadConfig(env = process.env) {
       // Only for local mock servers in development/tests; production always uses the official API.
       apiBase: (!isProd && env.TELEGRAM_API_BASE) ? env.TELEGRAM_API_BASE.replace(/\/+$/, '') : 'https://api.telegram.org'
     },
+    // Meta (Messenger / Instagram / WhatsApp). Base URLs can point at mock servers only outside production.
+    meta: {
+      graphVersion: env.META_GRAPH_VERSION || 'v24.0',
+      graphBase: (!isProd && env.META_GRAPH_BASE) ? env.META_GRAPH_BASE.replace(/\/+$/, '') : 'https://graph.facebook.com',
+      igGraphBase: (!isProd && env.META_IG_GRAPH_BASE) ? env.META_IG_GRAPH_BASE.replace(/\/+$/, '') : 'https://graph.instagram.com',
+      igApiBase: (!isProd && env.META_IG_API_BASE) ? env.META_IG_API_BASE.replace(/\/+$/, '') : 'https://api.instagram.com',
+      appId: env.META_APP_ID || '',
+      appSecret: env.META_APP_SECRET || '',
+      verifyToken: env.META_VERIFY_TOKEN || '',
+      // Instagram API with Instagram Login uses the Instagram app id/secret shown in the Meta app dashboard.
+      igAppId: env.META_IG_APP_ID || '',
+      igAppSecret: env.META_IG_APP_SECRET || '',
+      // WhatsApp Embedded Signup (requires Tech Provider status). Disabled while empty.
+      waConfigId: env.META_WA_CONFIG_ID || ''
+    },
     // Enabled provider adapters. Real providers arrive in Phase 3.3+; "fake" is for local tests only.
     channelProviders: list(env.CHANNEL_PROVIDERS),
     fakeProviderSecret: env.FAKE_PROVIDER_SECRET || ''
