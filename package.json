@@ -21,7 +21,11 @@
     "jobs:subscriptions": "node scripts/run-subscription-maintenance.js",
     "start:web": "node server/index.js --role=web",
     "start:worker": "node server/index.js --role=worker",
-    "secrets:rotate": "node scripts/rotate-encryption-keys.js"
+    "secrets:rotate": "node scripts/rotate-encryption-keys.js",
+    "db:prepare": "node scripts/prepare-database.js",
+    "start:render": "node scripts/prepare-database.js && node server/index.js",
+    "db:backup": "bash scripts/db-backup.sh",
+    "db:restore": "bash scripts/db-restore.sh"
   },
   "engines": {
     "node": ">=22.12"

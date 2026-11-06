@@ -65,4 +65,13 @@ function defineAdapter(def) {
   return Object.freeze({ ...def });
 }
 
-module.exports = { defineAdapter, ProviderError };
+/** Wrap transport failures (DNS, timeouts, SSRF refusals) so callers always see a ProviderError code. */
+async function providerCall(fn) {
+  try { return await fn(); } catch (error) {
+    if (error instanceof ProviderError || error?.name === 'ProviderError') throw error;
+    const blocked = ['net.private_address', 'net.insecure_url', 'net.host_not_allowed', 'net.invalid_url', 'net.too_large'].includes(error?.message);
+    throw new ProviderError(blocked ? (error.message === 'net.too_large' ? 'provider.media_too_large' : 'provider.bad_request') : 'provider.network_error', { retryable: !blocked });
+  }
+}
+
+module.exports = { defineAdapter, ProviderError, providerCall };

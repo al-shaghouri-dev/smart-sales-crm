@@ -63,14 +63,14 @@ function createApp(config, options = {}) {
 
   // Liveness: the process is up. Readiness: it can serve traffic (database reachable, jobs started
   // when enabled, not shutting down). Only booleans are exposed — no versions or internals.
-  app.get('/api/health', (_req, res) => res.json({ ok: true, service: 'smart-sales-crm' }));
+  app.get('/api/health', (_req, res) => res.set('Cache-Control', 'no-store').json({ ok: true, service: 'smart-sales-crm' }));
   app.get('/api/ready', async (_req, res) => {
     const state = app.locals.runtimeState || 'running';
     let database = false;
     try { await db.knex.raw('select 1'); database = true; } catch { database = false; }
     const jobsReady = options.jobs ? await options.jobs.health() : true;
     const ok = database && jobsReady && state === 'running';
-    res.status(ok ? 200 : 503).json({ ok, checks: { database, jobs: jobsReady, accepting: state === 'running' } });
+    res.set('Cache-Control', 'no-store').status(ok ? 200 : 503).json({ ok, checks: { database, jobs: jobsReady, accepting: state === 'running' } });
   });
 
   // Provider webhooks: raw bodies, mounted BEFORE the JSON parser (signatures need exact bytes).

@@ -1,5 +1,5 @@
 const crypto = require('crypto');
-const { defineAdapter, ProviderError } = require('../adapter');
+const { defineAdapter, ProviderError, providerCall } = require('../adapter');
 const { safeEqual } = require('../../webhooks/signatures');
 const { safeFetch } = require('../../net/safe-fetch');
 
@@ -52,7 +52,7 @@ function createTelegramProvider({ config: baseConfig = {}, fetchImpl = safeFetch
     if (!TOKEN.test(String(token || ''))) throw new ProviderError('provider.token_invalid', { retryable: false });
     let body, headers;
     if (multipart) { body = params; } else { body = JSON.stringify(params || {}); headers = { 'Content-Type': 'application/json' }; }
-    const res = await fetchImpl(`${apiBase()}/bot${token}/${method}`, netOpts({ method: 'POST', headers, body, timeoutMs, maxBytes: 1024 * 1024 }));
+    const res = await providerCall(() => fetchImpl(`${apiBase()}/bot${token}/${method}`, netOpts({ method: 'POST', headers, body, timeoutMs, maxBytes: 1024 * 1024 })));
     const data = res.json();
     if (!res.ok || !data || data.ok !== true) throw mapError(res.status, data);
     return data.result;
@@ -62,7 +62,7 @@ function createTelegramProvider({ config: baseConfig = {}, fetchImpl = safeFetch
     const file = await call(token, 'getFile', { file_id: fileId });
     if (!file?.file_path || (file.file_size && file.file_size > MAX_DOWNLOAD)) return null;
     if (!/^[A-Za-z0-9_./-]{1,300}$/.test(file.file_path) || file.file_path.includes('..')) return null;
-    const res = await fetchImpl(`${apiBase()}/file/bot${token}/${file.file_path}`, netOpts({ maxBytes: MAX_DOWNLOAD, timeoutMs: 60000 }));
+    const res = await providerCall(() => fetchImpl(`${apiBase()}/file/bot${token}/${file.file_path}`, netOpts({ maxBytes: MAX_DOWNLOAD, timeoutMs: 60000 })));
     if (!res.ok) throw mapError(res.status, null);
     return { buffer: res.body, name: file.file_path.split('/').pop() };
   }

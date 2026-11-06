@@ -136,8 +136,8 @@ channels). Back keys up separately from database backups.
 - **Public HTTPS** is required for real provider webhooks and for OAuth redirects (Phase 3.3+).
 - **Session-pinned database connections** for pg-boss and LISTEN/NOTIFY. If the provider gives a
   "pooled" (PgBouncer transaction mode) URL, put the **direct** URL in `DATABASE_DIRECT_URL`.
-- **Persistent file storage** for uploads (`UPLOADS_DIR`). Ephemeral disks lose logos and, later,
-  message media. An S3-compatible storage driver is planned before production.
+- **Persistent file storage** for uploads (`UPLOADS_DIR`) and message media (`MEDIA_DIR`), or
+  `MEDIA_DRIVER=s3` with any S3-compatible bucket. Ephemeral disks lose logos and attachments.
 
 ## 7. Free tiers — what can and cannot work
 
@@ -208,3 +208,71 @@ everything (§1) avoids all of these and is the simplest production setup.
    (systemd, PM2 or Docker) that sends `SIGTERM` on stop.
 4. To scale out: run several `--role=web` instances with `REALTIME_ADAPTER=postgres` behind a load
    balancer with sticky sessions or WebSocket-only transport, plus one or more `--role=worker` processes.
+
+## 10. Render (recommended host)
+
+`render.yaml` is a Blueprint for one always-on **web service** (API, frontend, Socket.IO and
+background jobs in one process, `PROCESS_ROLE=all`) with a 1 GB persistent disk, plus a managed
+**PostgreSQL 16** database. Nothing in it is secret.
+
+### 10.1 First deployment
+
+1. Render dashboard → **New → Blueprint** → select the GitHub repository and branch → Render reads `render.yaml`.
+2. Fill the `sync: false` values:
+   - `APP_ENCRYPTION_KEYS` = `k1:<output of openssl rand -base64 32>` and `APP_ENCRYPTION_PRIMARY_KEY_ID` = `k1`.
+     **Store this key in a password manager as well** (restoring a backup without it means reconnecting every channel).
+   - `APP_URL` / `PUBLIC_URL`: leave empty for the first deploy, then set to the service URL
+     (e.g. `https://smart-sales-crm.onrender.com`) or your custom domain and redeploy.
+   - Meta / SMTP values only when those features are used.
+3. Deploy. On every start `npm run start:render` runs `scripts/prepare-database.js`, which creates the
+   restricted role `sscrm_app` (NOBYPASSRLS) with the generated `APP_DB_PASSWORD`, applies pending
+   migrations and then starts the server. `/api/ready` turns green when the database and jobs are up.
+4. Create the first Super Admin from the service **Shell**:
+   `npm run platform:admin -- --email you@example.com --name "Your Name"` (password is prompted; never stored in the repo).
+5. Open `https://<service>/admin/login`.
+
+### 10.2 Channel webhooks
+
+| Channel | What to configure | Value |
+|---|---|---|
+| Telegram | nothing — connecting a bot registers its webhook automatically | `PUBLIC_URL/webhooks/telegram/<channel id>` |
+| Messenger | Meta app → Webhooks → Page | Callback `PUBLIC_URL/webhooks/messenger`, verify token = `META_VERIFY_TOKEN` |
+| Instagram | Meta app → Instagram → Webhooks | Callback `PUBLIC_URL/webhooks/instagram`, same verify token |
+| WhatsApp | Meta app → WhatsApp → Configuration | Callback `PUBLIC_URL/webhooks/whatsapp`, same verify token |
+| OAuth redirect URIs | Facebook Login for Business / Instagram Login | `PUBLIC_URL/api/channels/oauth/callback/messenger` and `.../instagram` |
+| Deauthorize / Data deletion | App settings → Advanced / Basic | `PUBLIC_URL/api/public/meta/<messenger|instagram>/deauthorize` and `/data-deletion` |
+
+### 10.3 Costs (check current Render pricing before relying on these)
+
+| Item | Plan in `render.yaml` | Approx. monthly |
+|---|---|---|
+| Web service, always on | Starter (512 MB) | ~7 USD |
+| Persistent disk 1 GB | — | ~0.25 USD |
+| PostgreSQL | Basic 256 MB | ~6 USD |
+| **Total** | | **~13–14 USD** |
+
+A free web service sleeps when idle (jobs and webhooks stop) and has no disk; a free database expires
+after 30 days. Both are acceptable only for a short demo, never for customers.
+
+### 10.4 Backups and restore
+
+- Render takes daily snapshots of paid databases (retention depends on the plan); use them for disaster recovery.
+- Logical backup you control (no superuser needed despite FORCE RLS):
+  `DATABASE_MIGRATION_URL=<external connection string> npm run db:backup -- backup.dump`
+- Restore into an empty database:
+  `DATABASE_MIGRATION_URL=<new db> APP_DB_ROLE=sscrm_app npm run db:restore -- backup.dump`, then start
+  the service (pg-boss recreates its job tables). Verified locally: identical row counts, login, inbox and
+  decryption of channel credentials after restore.
+- Encryption keys are not in the database: keep `APP_ENCRYPTION_KEYS` in a password manager.
+
+### 10.5 Production checklist
+
+- [ ] `NODE_ENV=production`, `TRUST_PROXY=1`, `APP_URL`/`PUBLIC_URL` are the final https address.
+- [ ] `APP_ENCRYPTION_KEYS` set and backed up; `WEBHOOK_SECRET_KEY` generated (32+ chars).
+- [ ] The app connects as `sscrm_app` (`prepare-database.js` refuses SUPERUSER/BYPASSRLS roles).
+- [ ] `/api/ready` returns `{"ok":true}`; the Super Admin can sign in at `/admin/login`.
+- [ ] Persistent disk mounted at `/var/data` (or `MEDIA_DRIVER=s3` configured).
+- [ ] `CHANNEL_PROVIDERS` lists only channels whose external setup is complete; `fake` is refused in production.
+- [ ] SMTP configured, or admins know links are shown once on screen.
+- [ ] A test backup was restored into a scratch database at least once.
+- [ ] Rotate keys when staff with access leave: `npm run secrets:rotate` (§5).

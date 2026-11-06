@@ -1,5 +1,5 @@
 const crypto = require('crypto');
-const { ProviderError } = require('../adapter');
+const { ProviderError, providerCall } = require('../adapter');
 const { verifyHmacSha256, safeEqual } = require('../../webhooks/signatures');
 const { safeFetch } = require('../../net/safe-fetch');
 
@@ -57,7 +57,7 @@ function createGraphClient({ base, version, appSecret, hosts, testMode = false, 
     else if (form) { headers['Content-Type'] = 'application/x-www-form-urlencoded'; body = new URLSearchParams(form).toString(); }
     else if (multipart) body = multipart;
     const target = versioned ? url(path, q) : (() => { const u = new URL(`${base}/${String(path).replace(/^\//, '')}`); for (const [k, v] of Object.entries(q)) u.searchParams.set(k, String(v)); return u.toString(); })();
-    const res = await fetchImpl(target, netOpts({ method, headers, body, timeoutMs, maxBytes }));
+    const res = await providerCall(() => fetchImpl(target, netOpts({ method, headers, body, timeoutMs, maxBytes })));
     const data = res.json();
     if (!res.ok || !data || data.error) throw mapGraphError(res.status, data?.error || {});
     return data;
@@ -72,8 +72,8 @@ function createGraphClient({ base, version, appSecret, hosts, testMode = false, 
 
 /** Download media from Meta's CDN (or a test server) with SSRF checks and a size limit. */
 async function downloadMedia(mediaUrl, { token, testMode = false, maxBytes = 20 * 1024 * 1024, fetchImpl = safeFetch } = {}) {
-  const res = await fetchImpl(mediaUrl, testMode ? { allowHttp: true, allowPrivate: true, maxBytes, timeoutMs: 60000, headers: token ? { Authorization: `Bearer ${token}` } : undefined }
-    : { allowedHosts: [...CDN_HOSTS, ...GRAPH_HOSTS], maxBytes, timeoutMs: 60000, headers: token ? { Authorization: `Bearer ${token}` } : undefined });
+  const res = await providerCall(() => fetchImpl(mediaUrl, testMode ? { allowHttp: true, allowPrivate: true, maxBytes, timeoutMs: 60000, headers: token ? { Authorization: `Bearer ${token}` } : undefined }
+    : { allowedHosts: [...CDN_HOSTS, ...GRAPH_HOSTS], maxBytes, timeoutMs: 60000, headers: token ? { Authorization: `Bearer ${token}` } : undefined }));
   if (!res.ok) throw new ProviderError(res.status >= 500 ? 'provider.unavailable' : 'provider.bad_request', { retryable: res.status >= 500 });
   return res.body;
 }

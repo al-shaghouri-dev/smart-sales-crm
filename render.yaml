@@ -1,0 +1,90 @@
+# Render Blueprint for Smart Sales CRM — one always-on web service (API + frontend + Socket.IO +
+# background jobs, PROCESS_ROLE=all) and a managed PostgreSQL 16 database.
+#
+# Nothing here contains a secret. Values marked `sync: false` are entered in the Render dashboard
+# when the Blueprint is created; `generateValue: true` makes Render create a random secret.
+# See docs/DEPLOYMENT.md §10 for the step-by-step guide, costs and the production checklist.
+services:
+  - type: web
+    name: smart-sales-crm
+    runtime: node
+    plan: starter            # always-on + persistent disk (the free plan sleeps and has no disk)
+    region: frankfurt
+    buildCommand: npm ci --include=dev && npm run build
+    # Creates the restricted app role if missing and applies migrations, then starts the server.
+    startCommand: npm run start:render
+    healthCheckPath: /api/ready
+    autoDeploy: false
+    disk:
+      name: data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: "22.12.0"
+      - key: PROCESS_ROLE
+        value: all
+      - key: TRUST_PROXY
+        value: "1"
+      # Database: migrations run as the database owner; the app connects as a role WITHOUT BYPASSRLS
+      # (DATABASE_URL is derived from these three values when it is not set explicitly).
+      - key: DATABASE_MIGRATION_URL
+        fromDatabase:
+          name: smart-sales-crm-db
+          property: connectionString
+      - key: APP_DB_ROLE
+        value: sscrm_app
+      - key: APP_DB_PASSWORD
+        generateValue: true
+      # Public address (set after the first deploy, e.g. https://smart-sales-crm.onrender.com or your domain).
+      - key: APP_URL
+        sync: false
+      - key: PUBLIC_URL
+        sync: false
+      # Encryption of channel credentials: "id:base64key" — generate with `openssl rand -base64 32`.
+      # Back it up outside Render; losing it means every channel must be reconnected.
+      - key: APP_ENCRYPTION_KEYS
+        sync: false
+      - key: APP_ENCRYPTION_PRIMARY_KEY_ID
+        sync: false
+      - key: WEBHOOK_SECRET_KEY
+        generateValue: true
+      # Files on the persistent disk (or switch MEDIA_DRIVER=s3 and set the MEDIA_S3_* variables).
+      - key: UPLOADS_DIR
+        value: /var/data/uploads
+      - key: MEDIA_DRIVER
+        value: local
+      - key: MEDIA_DIR
+        value: /var/data/media
+      # Channels to enable (comma separated): telegram, messenger, instagram, whatsapp.
+      - key: CHANNEL_PROVIDERS
+        value: telegram
+      # Meta (only when messenger / instagram / whatsapp are enabled).
+      - key: META_APP_ID
+        sync: false
+      - key: META_APP_SECRET
+        sync: false
+      - key: META_VERIFY_TOKEN
+        generateValue: true
+      - key: META_IG_APP_ID
+        sync: false
+      - key: META_IG_APP_SECRET
+        sync: false
+      # Email (optional; without it invitation/reset links are shown to the admin instead).
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: MAIL_FROM
+        sync: false
+
+databases:
+  - name: smart-sales-crm-db
+    plan: basic-256mb        # paid; free Render databases expire after 30 days
+    region: frankfurt
+    postgresMajorVersion: "16"
+    ipAllowList: []          # no external access; only services in the same Render account/region
