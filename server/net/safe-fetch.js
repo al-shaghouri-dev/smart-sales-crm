@@ -1,5 +1,7 @@
-const dns = require('dns').promises;
+const dns = require('dns');
 const net = require('net');
+const http = require('http');
+const https = require('https');
 
 /**
  * Outbound HTTP for provider APIs and media downloads, with SSRF protection.
@@ -9,6 +11,9 @@ const net = require('net');
  *    (incl. cloud metadata 169.254.169.254), CGNAT, multicast, reserved and IPv4-mapped ranges are
  *    refused, unless allowPrivate (tests only)
  *  - optional host allow-list (e.g. only lookaside.fbsbx.com / graph.facebook.com)
+ *  - the connection uses ONLY the addresses validated above (custom DNS lookup at connect time), so
+ *    a hostile DNS server cannot answer "public" for the check and "private" for the connection
+ *    (DNS rebinding)
  *  - redirects are not followed automatically; each hop is re-validated (max 3)
  *  - response size limit (streamed, aborted when exceeded) and a timeout
  *  - errors never include the URL (provider URLs can contain tokens)
@@ -45,6 +50,12 @@ function isPrivateAddress(ip) {
   return true;
 }
 
+async function resolveHost(host) {
+  if (net.isIP(host)) return [{ address: host, family: net.isIP(host) }];
+  try { return await dns.promises.lookup(host, { all: true, verbatim: true }); } catch { throw new SafeFetchError('net.dns_failed'); }
+}
+
+/** Validate a URL; returns { url, addresses } where addresses are the vetted IPs to connect to. */
 async function assertSafeUrl(raw, { allowHttp = false, allowPrivate = false, allowedHosts = null } = {}) {
   let url;
   try { url = new URL(raw); } catch { throw new SafeFetchError('net.invalid_url'); }
@@ -52,24 +63,49 @@ async function assertSafeUrl(raw, { allowHttp = false, allowPrivate = false, all
   if (url.username || url.password) throw new SafeFetchError('net.invalid_url');
   const host = url.hostname.replace(/^\[|\]$/g, '').toLowerCase();
   if (allowedHosts && !allowedHosts.some(h => host === h || (h.startsWith('.') && host.endsWith(h)))) throw new SafeFetchError('net.host_not_allowed');
-  if (!allowPrivate) {
-    const addresses = net.isIP(host) ? [host] : (await dns.lookup(host, { all: true, verbatim: true }).catch(() => { throw new SafeFetchError('net.dns_failed'); })).map(r => r.address);
-    if (!addresses.length || addresses.some(isPrivateAddress)) throw new SafeFetchError('net.private_address');
-  }
-  return url;
+  const addresses = await resolveHost(host);
+  if (!addresses.length || (!allowPrivate && addresses.some(a => isPrivateAddress(a.address)))) throw new SafeFetchError('net.private_address');
+  return { url, addresses };
 }
 
-async function readLimited(res, maxBytes) {
-  const declared = Number(res.headers.get('content-length') || 0);
-  if (declared && declared > maxBytes) { await res.body?.cancel().catch(() => {}); throw new SafeFetchError('net.too_large'); }
-  const chunks = [];
-  let total = 0;
-  for await (const chunk of res.body || []) {
-    total += chunk.length;
-    if (total > maxBytes) throw new SafeFetchError('net.too_large');
-    chunks.push(Buffer.from(chunk));
-  }
-  return Buffer.concat(chunks);
+/** Serialise a fetch-style body (string, Buffer, URLSearchParams, FormData) for http(s).request. */
+async function encodeBody(body, headers) {
+  if (body === undefined || body === null) return null;
+  if (typeof body === 'string' || Buffer.isBuffer(body)) return Buffer.from(body);
+  const req = new Request('http://local.invalid/', { method: 'POST', body });
+  if (!Object.keys(headers).some(k => k.toLowerCase() === 'content-type') && req.headers.get('content-type')) headers['Content-Type'] = req.headers.get('content-type');
+  return Buffer.from(await req.arrayBuffer());
+}
+
+function request(url, addresses, { method, headers, body, timeoutMs, maxBytes }) {
+  return new Promise((resolve, reject) => {
+    const lib = url.protocol === 'https:' ? https : http;
+    let i = 0;
+    const lookup = (_host, opts, cb) => {
+      const a = addresses[i++ % addresses.length];
+      if (opts && opts.all) return cb(null, [{ address: a.address, family: a.family }]);
+      cb(null, a.address, a.family);
+    };
+    const req = lib.request(url, { method, headers: { ...headers, ...(body ? { 'Content-Length': body.length } : {}) }, lookup, timeout: timeoutMs, servername: net.isIP(url.hostname) ? undefined : url.hostname }, res => {
+      const declared = Number(res.headers['content-length'] || 0);
+      if (declared && declared > maxBytes) { res.destroy(); return reject(new SafeFetchError('net.too_large')); }
+      const chunks = []; let total = 0;
+      res.on('data', c => { total += c.length; if (total > maxBytes) { res.destroy(); reject(new SafeFetchError('net.too_large')); } else chunks.push(c); });
+      res.on('end', () => resolve({ status: res.statusCode, headers: res.headers, body: Buffer.concat(chunks) }));
+      res.on('error', () => reject(Object.assign(new SafeFetchError('net.request_failed'), { code: 'ECONNRESET' })));
+    });
+    const timer = setTimeout(() => req.destroy(Object.assign(new Error('timeout'), { name: 'AbortError' })), timeoutMs);
+    req.on('timeout', () => req.destroy(Object.assign(new Error('timeout'), { name: 'AbortError' })));
+    req.on('error', error => {
+      clearTimeout(timer);
+      if (error instanceof SafeFetchError) return reject(error);
+      if (error.name === 'AbortError') return reject(Object.assign(new SafeFetchError('net.timeout'), { name: 'AbortError' }));
+      reject(Object.assign(new SafeFetchError('net.request_failed'), { code: error.code || 'ECONNRESET' }));
+    });
+    req.on('close', () => clearTimeout(timer));
+    if (body) req.write(body);
+    req.end();
+  });
 }
 
 /**
@@ -77,35 +113,23 @@ async function readLimited(res, maxBytes) {
  * opts: { method, headers, body, timeoutMs = 15000, maxBytes = 2MB, allowHttp, allowPrivate, allowedHosts, maxRedirects = 3 }
  */
 async function safeFetch(raw, opts = {}) {
-  const { method = 'GET', headers, body, timeoutMs = 15000, maxBytes = 2 * 1024 * 1024, maxRedirects = 3 } = opts;
+  const { method = 'GET', timeoutMs = 15000, maxBytes = 2 * 1024 * 1024, maxRedirects = 3 } = opts;
+  const headers = { ...(opts.headers || {}) };
+  const body = await encodeBody(opts.body, headers);
   let current = raw;
   for (let hop = 0; hop <= maxRedirects; hop++) {
-    const url = await assertSafeUrl(current, opts);
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
-    let res;
-    try {
-      res = await fetch(url, { method: hop === 0 ? method : 'GET', headers, body: hop === 0 ? body : undefined, redirect: 'manual', signal: controller.signal });
-      if ([301, 302, 303, 307, 308].includes(res.status)) {
-        const location = res.headers.get('location');
-        await res.body?.cancel().catch(() => {});
-        if (!location) throw new SafeFetchError('net.bad_redirect');
-        current = new URL(location, url).toString();
-        continue;
-      }
-      const buf = await readLimited(res, maxBytes);
-      return {
-        status: res.status, ok: res.ok, headers: res.headers, body: buf,
-        json() { try { return JSON.parse(buf.toString('utf8')); } catch { return null; } }
-      };
-    } catch (error) {
-      if (error instanceof SafeFetchError) throw error;
-      if (error.name === 'AbortError') throw Object.assign(new SafeFetchError('net.timeout'), { name: 'AbortError' });
-      // Undici wraps the cause; keep only a code (never the URL).
-      throw Object.assign(new SafeFetchError('net.request_failed'), { code: error.cause?.code || 'ECONNRESET' });
-    } finally {
-      clearTimeout(timer);
+    const { url, addresses } = await assertSafeUrl(current, opts);
+    const res = await request(url, addresses, { method: hop === 0 ? method : 'GET', headers: hop === 0 ? headers : {}, // credentials are never forwarded to a redirect target body: hop === 0 ? body : null, timeoutMs, maxBytes });
+    if ([301, 302, 303, 307, 308].includes(res.status)) {
+      if (!res.headers.location) throw new SafeFetchError('net.bad_redirect');
+      current = new URL(res.headers.location, url).toString();
+      continue;
     }
+    const buf = res.body;
+    return {
+      status: res.status, ok: res.status >= 200 && res.status < 300, headers: { get: k => res.headers[String(k).toLowerCase()] ?? null }, body: buf,
+      json() { try { return JSON.parse(buf.toString('utf8')); } catch { return null; } }
+    };
   }
   throw new SafeFetchError('net.too_many_redirects');
 }

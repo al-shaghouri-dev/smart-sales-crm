@@ -79,7 +79,7 @@ function createApp(config, options = {}) {
   app.use(express.json({ limit: '1mb' }));
   // API responses (some carry one-time links) must never be stored by browsers or proxies.
   app.use('/api', (_req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
-  app.use('/api', rateLimit({ windowMs: 60 * 1000, limit: options.apiRateLimit || 600, standardHeaders: 'draft-7', legacyHeaders: false }));
+  app.use('/api', rateLimit({ windowMs: 60 * 1000, limit: options.apiRateLimit || config.apiRateLimit || 600, standardHeaders: 'draft-7', legacyHeaders: false }));
   // Short-lived signed media links for providers that fetch attachments by URL (Instagram, WhatsApp).
   app.get('/media/:token', async (req, res) => {
     const data = messaging.verifyMediaToken(req.params.token);

@@ -24,6 +24,8 @@ function loadConfig(env = process.env) {
     uploadsDir: env.UPLOADS_DIR || require('path').join(__dirname, '..', 'uploads'),
     sessionTtlHours: Number(env.SESSION_TTL_HOURS || 12),
     loginRateLimit: Number(env.LOGIN_RATE_LIMIT || 10),
+    // Requests per minute per client IP for /api (protects against scraping and brute force).
+    apiRateLimit: int(env.API_RATE_LIMIT_PER_MINUTE, 600),
     encryptionKey: env.APP_ENCRYPTION_KEY || '',
     keyRing: loadKeyRingFromEnv(env),
     // Public base URL used in invitation / password-reset links.
@@ -44,7 +46,8 @@ function loadConfig(env = process.env) {
     jobs: {
       schema: env.JOBS_SCHEMA || 'pgboss',
       pollingIntervalSeconds: Number(env.JOBS_POLLING_INTERVAL_SECONDS || 2),
-      poolMax: int(env.JOBS_POOL_MAX, 4)
+      poolMax: int(env.JOBS_POOL_MAX, 4),
+      batchSize: int(env.JOBS_BATCH_SIZE, 10)
     },
     shutdownTimeoutMs: int(env.SHUTDOWN_TIMEOUT_MS, 25000),
 

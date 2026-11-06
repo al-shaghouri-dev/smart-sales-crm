@@ -82,10 +82,21 @@ function createJobs(config, { logger = console } = {}) {
       started = true;
     },
 
-    /** Register a handler. `handler(job)` receives one job; throwing triggers a retry. */
-    async work(name, handler, { pollingIntervalSeconds = config.jobs.pollingIntervalSeconds, localConcurrency = 2 } = {}) {
+    /**
+     * Register a handler. `handler(job)` receives one job; throwing fails (and retries) THAT job only.
+     * Jobs are fetched in batches and processed concurrently; while fetches come back full the
+     * worker keeps fetching without waiting (burst), so backlogs drain at database speed.
+     */
+    async work(name, handler, { pollingIntervalSeconds = config.jobs.pollingIntervalSeconds, localConcurrency = 2, batchSize = config.jobs.batchSize || 10 } = {}) {
       if (!definitions[name]) throw new Error(`Unknown queue ${name}`);
-      return boss.work(name, { pollingIntervalSeconds, localConcurrency, batchSize: 1 }, async ([job]) => handler(job));
+      return boss.work(name, { pollingIntervalSeconds, localConcurrency, batchSize, perJobResults: true, burstWhenBatchFull: batchSize > 1 }, async jobs => Promise.all(jobs.map(async job => {
+        try {
+          const output = await handler(job);
+          return { id: job.id, status: 'completed', output: output && typeof output === 'object' ? output : undefined };
+        } catch (error) {
+          return { id: job.id, status: 'failed', output: { message: String(error.code || error.message || 'error').slice(0, 200) } };
+        }
+      })));
     },
 
     async send(name, data, options = {}) {
