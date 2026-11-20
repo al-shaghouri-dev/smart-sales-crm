@@ -4,7 +4,9 @@
 #   docker compose -f infrastructure/docker/docker-compose.production.yml --env-file .env up -d --build
 #
 # Services: db (PostgreSQL 16) → migrate (one-shot: app role check + migrations) → app (API, frontend,
-# Socket.IO, jobs). Optional: `--profile proxy` adds Nginx with TLS on ports 80/443.
+# Socket.IO, jobs). Optional reverse proxy (choose one):
+#   --profile caddy  automatic HTTPS with Let's Encrypt (set DOMAIN and ACME_EMAIL in .env) — simplest
+#   --profile proxy  Nginx with your own certificates (TLS_CERT_DIR)
 # Passwords used inside connection URLs must be URL-safe (e.g. `openssl rand -hex 24`).
 name: smart-sales-crm
 
@@ -80,6 +82,23 @@ services:
       - ${TLS_CERT_DIR:-../nginx/certs}:/etc/nginx/certs:ro
     logging: *logging
 
+  caddy:
+    profiles: ["caddy"]
+    image: caddy:2.8-alpine
+    restart: unless-stopped
+    depends_on: [app]
+    ports: ["80:80", "443:443", "443:443/udp"]
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+      ACME_EMAIL: ${ACME_EMAIL:-}
+    volumes:
+      - ../caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    logging: *logging
+
 volumes:
   pgdata:
   appdata:
+  caddy_data:
+  caddy_config:

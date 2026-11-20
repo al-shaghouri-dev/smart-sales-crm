@@ -1,0 +1,15 @@
+# Automatic HTTPS (Let's Encrypt) reverse proxy for Smart Sales CRM.
+# DOMAIN and ACME_EMAIL come from .env. Caddy obtains and renews the certificate by itself;
+# ports 80 and 443 must be open and the domain's DNS A record must point to this server.
+{
+	email {$ACME_EMAIL}
+}
+
+{$DOMAIN} {
+	encode zstd gzip
+	request_body {
+		max_size 12MB
+	}
+	# WebSockets (/socket.io) are proxied automatically.
+	reverse_proxy app:3000
+}
