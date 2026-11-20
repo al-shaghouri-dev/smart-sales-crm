@@ -23,6 +23,13 @@ test/              integration tests (real PostgreSQL) + frontend unit tests
 legacy/            original single-company prototype — reference only, not deployed
 ```
 
+## One-command install (Ubuntu/Debian server + domain)
+
+```bash
+curl -fsSLO https://raw.githubusercontent.com/al-shaghouri-dev/smart-sales-crm/saas/phase-0-1-clean/infrastructure/deployment/install.sh
+sudo bash install.sh --domain crm.example.com --email you@example.com
+```
+
 ## Quick start (production, Docker)
 
 ```bash

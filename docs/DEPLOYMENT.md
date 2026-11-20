@@ -16,6 +16,21 @@ free tiers, Vercel, Render and the free testing setup.
 
 Minimum size for a small production: 1 vCPU, 1 GB RAM for the app; PostgreSQL with 1 GB RAM and 10 GB disk.
 
+## A1b. One-command install on a fresh Ubuntu/Debian server (tested)
+
+Point the domain's DNS **A record** to the server's public IP, open ports 22/80/443, then on the server:
+
+```bash
+curl -fsSLO https://raw.githubusercontent.com/al-shaghouri-dev/smart-sales-crm/saas/phase-0-1-clean/infrastructure/deployment/install.sh
+sudo bash install.sh --domain crm.example.com --email you@example.com
+```
+
+`install.sh` installs Docker, clones the app to `/opt/smart-sales-crm`, generates every secret on the
+server (`.env`, mode 600), starts PostgreSQL → migrations → app → **Caddy** (automatic Let's Encrypt
+HTTPS), creates the Super Admin and prints its one-time password once, installs a daily database backup
+(`/opt/smart-sales-crm/backups`, 14 days) and opens ufw ports. Running it again updates the application
+and keeps `.env` and data. Copy `/opt/smart-sales-crm/.env` to a password manager afterwards.
+
 ## A2. Docker Compose on one server (tested)
 
 ```bash
