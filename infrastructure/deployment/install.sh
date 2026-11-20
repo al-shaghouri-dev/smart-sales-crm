@@ -4,6 +4,10 @@
 #
 #   sudo bash install.sh --domain crm.example.com --email you@example.com
 #
+# Uploaded the application yourself (e.g. unzipped to /opt/smart-sales-crm)? Run the script from there:
+#   sudo bash /opt/smart-sales-crm/infrastructure/deployment/install.sh --domain … --email …
+# It then uses those files instead of downloading from GitHub.
+#
 # What it does (safe to run again; it never overwrites an existing .env or database):
 #   1. checks the server and that the domain's DNS points here
 #   2. installs Docker (official script) and git if missing; adds swap on small servers
@@ -18,7 +22,10 @@ set -euo pipefail
 DOMAIN=""; EMAIL=""
 REPO="${SSCRM_REPO:-https://github.com/al-shaghouri-dev/smart-sales-crm.git}"
 BRANCH="${SSCRM_BRANCH:-saas/phase-0-1-clean}"
-DIR="${SSCRM_DIR:-/opt/smart-sales-crm}"
+SCRIPT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." 2>/dev/null && pwd || true)"
+# Default: the copy this script belongs to when it was uploaded with the app, else /opt/smart-sales-crm.
+if [ -n "$SCRIPT_ROOT" ] && [ -f "$SCRIPT_ROOT/Dockerfile" ] && [ -f "$SCRIPT_ROOT/package.json" ]; then DEFAULT_DIR="$SCRIPT_ROOT"; else DEFAULT_DIR=/opt/smart-sales-crm; fi
+DIR="${SSCRM_DIR:-$DEFAULT_DIR}"
 SKIP_DNS_CHECK="${SKIP_DNS_CHECK:-0}"
 BUILD_FLAG="${SSCRM_BUILD_FLAG:---build}"   # testing hook: "--no-build" reuses an existing image
 
@@ -72,11 +79,13 @@ fi
 say "3/7 Downloading the application ($BRANCH)"
 if [ -d "$DIR/.git" ]; then
   git -C "$DIR" fetch --quiet origin "$BRANCH" && git -C "$DIR" checkout --quiet "$BRANCH" && git -C "$DIR" pull --quiet --ff-only origin "$BRANCH"
+elif [ -f "$DIR/package.json" ] && [ -f "$DIR/Dockerfile" ]; then
+  echo "Using the files already uploaded to $DIR (no download)."
 else
   git clone --quiet --branch "$BRANCH" "$REPO" "$DIR"
 fi
 cd "$DIR"
-echo "Version: $(git rev-parse --short HEAD)"
+echo "Version: $(git rev-parse --short HEAD 2>/dev/null || echo uploaded-copy)"
 
 say "4/7 Creating configuration (secrets are generated here and stay on this server)"
 FIRST_INSTALL=0
@@ -114,6 +123,12 @@ ENV
   echo "Created $DIR/.env (mode 600)."
 else
   echo "Existing .env kept unchanged."
+  # A previous run stopped before finishing: the one-time admin password is still pending.
+  if grep -q '^BOOTSTRAP_ADMIN_PASSWORD=' .env; then
+    FIRST_INSTALL=1
+    ADMIN_PASSWORD="$(grep '^BOOTSTRAP_ADMIN_PASSWORD=' .env | head -1 | cut -d= -f2-)"
+    EMAIL="$(grep '^BOOTSTRAP_ADMIN_EMAIL=' .env | head -1 | cut -d= -f2- || echo "$EMAIL")"
+  fi
 fi
 
 say "5/7 Building and starting (first build takes a few minutes)"
