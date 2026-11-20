@@ -36,7 +36,10 @@
     "dark": "Dark",
     "system": "System",
     "menu": "Menu",
-    "back": "Back"
+    "back": "Back",
+    "previous": "Previous",
+    "next": "Next",
+    "pageOf": "Page {{page}} of {{pages}}"
   },
   "errors": {
     "auth": {
@@ -210,6 +213,25 @@
     "whatsapp": {
       "embedded_signup_disabled": "WhatsApp Embedded Signup is not enabled yet.",
       "quality_low": "WhatsApp rates this number's quality as low."
+    },
+    "customers": {
+      "not_found": "Customer not found.",
+      "has_conversations": "This customer has conversations and can't be deleted. Mark them inactive instead.",
+      "note_not_found": "Note not found."
+    },
+    "deals": {
+      "not_found": "Deal not found.",
+      "stage_in_use": "This stage still has deals. Move them first.",
+      "stage_open_required": "Keep at least one in-progress stage."
+    },
+    "orders": {
+      "items_required": "Add at least one item.",
+      "discount_too_large": "The discount can't exceed the subtotal.",
+      "not_found": "Order not found."
+    },
+    "tasks": {
+      "assign_forbidden": "You can only assign tasks to yourself.",
+      "not_found": "Task not found."
     }
   },
   "auth": {
@@ -249,7 +271,12 @@
     "platformSettings": "Platform settings",
     "registrations": "Registrations",
     "inbox": "Inbox",
-    "channels": "Channels"
+    "channels": "Channels",
+    "customers": "Customers",
+    "pipeline": "Sales pipeline",
+    "orders": "Orders",
+    "tasks": "Tasks",
+    "reports": "Reports"
   },
   "blocked": {
     "noWorkspaceTitle": "No workspace yet",
@@ -283,7 +310,13 @@
     "goInbox": "Open the inbox",
     "manageChannels": "Manage channels",
     "connectFirstChannel": "Connect your first channel",
-    "manageTeam": "Manage the team"
+    "manageTeam": "Manage the team",
+    "customers": "Customers",
+    "tasksDue": "Tasks due today",
+    "myTasks": "My tasks for today",
+    "noTasksToday": "Nothing due today. 🎉",
+    "goCustomers": "Open customers",
+    "goOrders": "Create an order"
   },
   "team": {
     "title": "Team",
@@ -503,7 +536,11 @@
       "channel.reconnected": "Channel reconnected",
       "channel.disconnected": "Channel disconnected",
       "conversation.assigned": "Conversation assigned",
-      "company.outbound_updated": "Changed outbound sending controls"
+      "company.outbound_updated": "Changed outbound sending controls",
+      "customers.exported": "Exported customers",
+      "customers.deleted": "Deleted a customer",
+      "orders.exported": "Exported orders",
+      "orders.deleted": "Deleted an order"
     }
   },
   "platform": {
@@ -894,7 +931,8 @@
     "templates": "Approved templates",
     "noTemplates": "No approved templates found for this number.",
     "chooseTemplate": "Choose a template",
-    "sendTemplate": "Send a template"
+    "sendTemplate": "Send a template",
+    "openCustomer": "Open customer profile"
   },
   "channels": {
     "title": "Channels",
@@ -992,5 +1030,178 @@
     "allLive": "All live channels",
     "provider": "Provider",
     "allProviders": "All providers"
+  },
+  "customers": {
+    "title": "Customers",
+    "subtitle": "Everyone who contacted you or that you added — with their history in one place.",
+    "add": "Add customer",
+    "edit": "Edit customer",
+    "all": "All",
+    "allTags": "All tags",
+    "export": "Export CSV",
+    "name": "Name",
+    "phone": "Phone",
+    "email": "Email",
+    "companyName": "Company",
+    "statusLabel": "Status",
+    "tags": "Tags",
+    "tagsHint": "Separate tags with commas",
+    "about": "About this customer",
+    "searchPlaceholder": "Search by name, phone, email…",
+    "emptyTitle": "No customers yet",
+    "emptyBody": "Customers appear here automatically when they message you on a connected channel, or add one manually.",
+    "noMatches": "No matching customers",
+    "source": "Source",
+    "manual": "Added manually",
+    "lastContact": "Last contact",
+    "firstContact": "First contact",
+    "owner": "Owner",
+    "notes": "Notes",
+    "notePlaceholder": "Write a note about this customer…",
+    "addNote": "Add note",
+    "noNotes": "No notes yet.",
+    "conversations": "Conversations",
+    "noConversations": "No conversations yet.",
+    "tasks": "Follow-ups",
+    "deals": "Deals",
+    "orders": "Orders",
+    "details": "Details",
+    "deleteTitle": "Delete customer",
+    "deleteBody": "Delete {{name}} and their notes? This cannot be undone.",
+    "status": {
+      "new": "New",
+      "lead": "Lead",
+      "customer": "Customer",
+      "inactive": "Inactive"
+    },
+    "openDealsCount": "{{count}} open deals"
+  },
+  "pipeline": {
+    "title": "Sales pipeline",
+    "subtitle": "{{count}} open deals worth {{value}}",
+    "newDeal": "New deal",
+    "editDeal": "Edit deal",
+    "deleteDeal": "Delete deal",
+    "deleteBody": "Delete the deal “{{title}}”?",
+    "dealTitle": "Deal title",
+    "value": "Value",
+    "expectedClose": "Expected close",
+    "stage": "Stage",
+    "firstStage": "First stage",
+    "customer": "Customer",
+    "onlyMine": "Only my deals",
+    "editStages": "Edit stages",
+    "stageName": "Stage name",
+    "stageKind": "Stage type",
+    "addStage": "Add stage",
+    "newStage": "New stage",
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "emptyTitle": "No deals yet",
+    "emptyBody": "Create a deal for each sales opportunity and drag it between stages as it progresses.",
+    "noDeals": "No deals yet.",
+    "kind": {
+      "open": "In progress",
+      "won": "Won",
+      "lost": "Lost"
+    }
+  },
+  "orders": {
+    "title": "Orders",
+    "subtitle": "Record orders, track their status and print invoices.",
+    "new": "New order",
+    "editTitle": "Edit order #{{number}}",
+    "orderNumber": "Order #{{number}}",
+    "all": "All",
+    "export": "Export CSV",
+    "searchPlaceholder": "Search by number or customer…",
+    "emptyTitle": "No orders yet",
+    "emptyBody": "Create an order from here or from a customer's page.",
+    "empty": "No orders yet.",
+    "customer": "Customer",
+    "noCustomer": "No customer",
+    "statusLabel": "Status",
+    "date": "Date",
+    "item": "Item",
+    "itemPlaceholder": "Product or service",
+    "qty": "Qty",
+    "price": "Unit price",
+    "lineTotal": "Total",
+    "addItem": "Add item",
+    "discount": "Discount",
+    "shipping": "Shipping",
+    "shippingHint": "Empty = company default",
+    "subtotal": "Subtotal",
+    "tax": "Tax",
+    "total": "Total",
+    "shippingAddress": "Shipping address",
+    "notes": "Notes",
+    "print": "Print",
+    "totalsNote": "Tax and totals are calculated on save.",
+    "deleteTitle": "Delete order",
+    "deleteBody": "Delete order #{{number}}? This cannot be undone.",
+    "status": {
+      "new": "New",
+      "confirmed": "Confirmed",
+      "shipped": "Shipped",
+      "delivered": "Delivered",
+      "cancelled": "Cancelled"
+    }
+  },
+  "tasks": {
+    "title": "Tasks & follow-ups",
+    "subtitle": "Never forget to call a customer back.",
+    "new": "New task",
+    "edit": "Edit task",
+    "taskTitle": "Task",
+    "titlePlaceholder": "e.g. Call back about the price quote",
+    "due": "Due",
+    "assignee": "Assigned to",
+    "me": "Me",
+    "customer": "Customer",
+    "notes": "Notes",
+    "onlyMine": "Only my tasks",
+    "toggle": "Mark done / not done",
+    "assignedTo": "For {{name}}",
+    "overdue": "Overdue",
+    "empty": "No tasks.",
+    "emptyTitle": "Nothing to do here",
+    "emptyBody": "Add follow-up tasks to remember calls, quotes and deliveries.",
+    "deleteTitle": "Delete task",
+    "deleteBody": "Delete the task “{{title}}”?",
+    "filter": {
+      "open": "Open",
+      "today": "Due today",
+      "overdue": "Overdue",
+      "done": "Done",
+      "all": "All"
+    }
+  },
+  "reports": {
+    "title": "Reports",
+    "subtitle": "How your sales and conversations are going.",
+    "range": "Period",
+    "inbound": "Messages received",
+    "outbound": "Replies sent",
+    "newContacts": "New customers",
+    "newConversations": "New conversations",
+    "firstResponse": "Median first response",
+    "dealsWon": "Deals won",
+    "revenue": "Revenue",
+    "orders": "Orders",
+    "messagesChart": "Messages per day",
+    "revenueChart": "Revenue per day",
+    "contactsChart": "New customers per day",
+    "pipeline": "Pipeline by stage",
+    "customersByStatus": "Customers by status",
+    "ordersByStatus": "Orders by status",
+    "conversationsByStatus": "Conversations by status",
+    "team": "Team performance",
+    "member": "Member",
+    "replies": "Replies",
+    "openAssigned": "Open assigned",
+    "tasksDone": "Tasks done",
+    "lastDays": "{{count}} days",
+    "minutes": "{{count}} min"
   }
 }

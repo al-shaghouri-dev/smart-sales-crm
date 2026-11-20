@@ -36,7 +36,10 @@
     "dark": "داكن",
     "system": "حسب الجهاز",
     "menu": "القائمة",
-    "back": "رجوع"
+    "back": "رجوع",
+    "previous": "السابق",
+    "next": "التالي",
+    "pageOf": "صفحة {{page}} من {{pages}}"
   },
   "errors": {
     "auth": {
@@ -210,6 +213,25 @@
     "whatsapp": {
       "embedded_signup_disabled": "التسجيل المضمّن لواتساب غير مفعّل بعد.",
       "quality_low": "يقيّم واتساب جودة هذا الرقم بأنها منخفضة."
+    },
+    "customers": {
+      "not_found": "العميل غير موجود.",
+      "has_conversations": "لهذا العميل محادثات ولا يمكن حذفه. اجعله «غير نشط» بدلاً من ذلك.",
+      "note_not_found": "الملاحظة غير موجودة."
+    },
+    "deals": {
+      "not_found": "الصفقة غير موجودة.",
+      "stage_in_use": "هذه المرحلة ما زالت تحتوي صفقات. انقلها أولاً.",
+      "stage_open_required": "أبقِ مرحلة واحدة على الأقل «قيد العمل»."
+    },
+    "orders": {
+      "items_required": "أضف صنفاً واحداً على الأقل.",
+      "discount_too_large": "لا يمكن أن يتجاوز الخصم المجموع الفرعي.",
+      "not_found": "الطلب غير موجود."
+    },
+    "tasks": {
+      "assign_forbidden": "يمكنك إسناد المهام لنفسك فقط.",
+      "not_found": "المهمة غير موجودة."
     }
   },
   "auth": {
@@ -249,7 +271,12 @@
     "platformSettings": "إعدادات المنصة",
     "registrations": "طلبات التسجيل",
     "inbox": "صندوق الوارد",
-    "channels": "القنوات"
+    "channels": "القنوات",
+    "customers": "العملاء",
+    "pipeline": "مسار المبيعات",
+    "orders": "الطلبات",
+    "tasks": "المهام",
+    "reports": "التقارير"
   },
   "blocked": {
     "noWorkspaceTitle": "لا توجد مساحة عمل بعد",
@@ -283,7 +310,13 @@
     "goInbox": "افتح صندوق الوارد",
     "manageChannels": "إدارة القنوات",
     "connectFirstChannel": "اربط أول قناة",
-    "manageTeam": "إدارة الفريق"
+    "manageTeam": "إدارة الفريق",
+    "customers": "العملاء",
+    "tasksDue": "مهام اليوم",
+    "myTasks": "مهامي اليوم",
+    "noTasksToday": "لا مهام لليوم. 🎉",
+    "goCustomers": "فتح العملاء",
+    "goOrders": "إنشاء طلب"
   },
   "team": {
     "title": "الفريق",
@@ -503,7 +536,11 @@
       "channel.reconnected": "إعادة ربط قناة",
       "channel.disconnected": "فصل قناة",
       "conversation.assigned": "إسناد محادثة",
-      "company.outbound_updated": "تعديل ضوابط الإرسال"
+      "company.outbound_updated": "تعديل ضوابط الإرسال",
+      "customers.exported": "صدّر العملاء",
+      "customers.deleted": "حذف عميلاً",
+      "orders.exported": "صدّر الطلبات",
+      "orders.deleted": "حذف طلباً"
     }
   },
   "platform": {
@@ -894,7 +931,8 @@
     "templates": "القوالب المعتمدة",
     "noTemplates": "لا توجد قوالب معتمدة لهذا الرقم.",
     "chooseTemplate": "اختر قالباً",
-    "sendTemplate": "إرسال قالب"
+    "sendTemplate": "إرسال قالب",
+    "openCustomer": "فتح ملف العميل"
   },
   "channels": {
     "title": "القنوات",
@@ -992,5 +1030,178 @@
     "allLive": "كل القنوات الحية",
     "provider": "المزوّد",
     "allProviders": "كل المزوّدين"
+  },
+  "customers": {
+    "title": "العملاء",
+    "subtitle": "كل من تواصل معك أو أضفته — مع سجلّه الكامل في مكان واحد.",
+    "add": "إضافة عميل",
+    "edit": "تعديل العميل",
+    "all": "الكل",
+    "allTags": "كل الوسوم",
+    "export": "تصدير CSV",
+    "name": "الاسم",
+    "phone": "الهاتف",
+    "email": "البريد الإلكتروني",
+    "companyName": "الشركة",
+    "statusLabel": "الحالة",
+    "tags": "الوسوم",
+    "tagsHint": "افصل بين الوسوم بفاصلة",
+    "about": "معلومات عن العميل",
+    "searchPlaceholder": "ابحث بالاسم أو الهاتف أو البريد…",
+    "emptyTitle": "لا يوجد عملاء بعد",
+    "emptyBody": "يظهر العملاء هنا تلقائياً عندما يراسلونك عبر قناة مربوطة، أو أضف عميلاً يدوياً.",
+    "noMatches": "لا يوجد عملاء مطابقون",
+    "source": "المصدر",
+    "manual": "أُضيف يدوياً",
+    "lastContact": "آخر تواصل",
+    "firstContact": "أول تواصل",
+    "owner": "المسؤول",
+    "notes": "الملاحظات",
+    "notePlaceholder": "اكتب ملاحظة عن هذا العميل…",
+    "addNote": "إضافة ملاحظة",
+    "noNotes": "لا توجد ملاحظات بعد.",
+    "conversations": "المحادثات",
+    "noConversations": "لا توجد محادثات بعد.",
+    "tasks": "المتابعات",
+    "deals": "الصفقات",
+    "orders": "الطلبات",
+    "details": "التفاصيل",
+    "deleteTitle": "حذف العميل",
+    "deleteBody": "حذف {{name}} وملاحظاته؟ لا يمكن التراجع.",
+    "status": {
+      "new": "جديد",
+      "lead": "مهتم",
+      "customer": "عميل",
+      "inactive": "غير نشط"
+    },
+    "openDealsCount": "صفقات مفتوحة: {{count}}"
+  },
+  "pipeline": {
+    "title": "مسار المبيعات",
+    "subtitle": "{{count}} صفقة مفتوحة بقيمة {{value}}",
+    "newDeal": "صفقة جديدة",
+    "editDeal": "تعديل الصفقة",
+    "deleteDeal": "حذف الصفقة",
+    "deleteBody": "حذف الصفقة «{{title}}»؟",
+    "dealTitle": "عنوان الصفقة",
+    "value": "القيمة",
+    "expectedClose": "الإغلاق المتوقع",
+    "stage": "المرحلة",
+    "firstStage": "المرحلة الأولى",
+    "customer": "العميل",
+    "onlyMine": "صفقاتي فقط",
+    "editStages": "تعديل المراحل",
+    "stageName": "اسم المرحلة",
+    "stageKind": "نوع المرحلة",
+    "addStage": "إضافة مرحلة",
+    "newStage": "مرحلة جديدة",
+    "moveUp": "تحريك لأعلى",
+    "moveDown": "تحريك لأسفل",
+    "emptyTitle": "لا توجد صفقات بعد",
+    "emptyBody": "أنشئ صفقة لكل فرصة بيع واسحبها بين المراحل حسب تقدّمها.",
+    "noDeals": "لا توجد صفقات بعد.",
+    "kind": {
+      "open": "قيد العمل",
+      "won": "ناجحة",
+      "lost": "خاسرة"
+    }
+  },
+  "orders": {
+    "title": "الطلبات",
+    "subtitle": "سجّل الطلبات وتابع حالتها واطبع الفواتير.",
+    "new": "طلب جديد",
+    "editTitle": "تعديل الطلب #{{number}}",
+    "orderNumber": "طلب #{{number}}",
+    "all": "الكل",
+    "export": "تصدير CSV",
+    "searchPlaceholder": "ابحث برقم الطلب أو اسم العميل…",
+    "emptyTitle": "لا توجد طلبات بعد",
+    "emptyBody": "أنشئ طلباً من هنا أو من صفحة العميل.",
+    "empty": "لا توجد طلبات بعد.",
+    "customer": "العميل",
+    "noCustomer": "بدون عميل",
+    "statusLabel": "الحالة",
+    "date": "التاريخ",
+    "item": "الصنف",
+    "itemPlaceholder": "منتج أو خدمة",
+    "qty": "الكمية",
+    "price": "سعر الوحدة",
+    "lineTotal": "المجموع",
+    "addItem": "إضافة صنف",
+    "discount": "الخصم",
+    "shipping": "الشحن",
+    "shippingHint": "فارغ = القيمة الافتراضية للشركة",
+    "subtotal": "المجموع الفرعي",
+    "tax": "الضريبة",
+    "total": "الإجمالي",
+    "shippingAddress": "عنوان الشحن",
+    "notes": "ملاحظات",
+    "print": "طباعة",
+    "totalsNote": "تُحسب الضريبة والإجمالي عند الحفظ.",
+    "deleteTitle": "حذف الطلب",
+    "deleteBody": "حذف الطلب #{{number}}؟ لا يمكن التراجع.",
+    "status": {
+      "new": "جديد",
+      "confirmed": "مؤكَّد",
+      "shipped": "تم الشحن",
+      "delivered": "تم التسليم",
+      "cancelled": "ملغى"
+    }
+  },
+  "tasks": {
+    "title": "المهام والمتابعات",
+    "subtitle": "لا تنسَ الرد على أي عميل.",
+    "new": "مهمة جديدة",
+    "edit": "تعديل المهمة",
+    "taskTitle": "المهمة",
+    "titlePlaceholder": "مثال: الاتصال بخصوص عرض السعر",
+    "due": "الموعد",
+    "assignee": "مُسندة إلى",
+    "me": "أنا",
+    "customer": "العميل",
+    "notes": "ملاحظات",
+    "onlyMine": "مهامي فقط",
+    "toggle": "تعليم كمنجزة / غير منجزة",
+    "assignedTo": "لـ {{name}}",
+    "overdue": "متأخرة",
+    "empty": "لا توجد مهام.",
+    "emptyTitle": "لا شيء هنا",
+    "emptyBody": "أضف مهام متابعة لتتذكر الاتصالات والعروض والتسليمات.",
+    "deleteTitle": "حذف المهمة",
+    "deleteBody": "حذف المهمة «{{title}}»؟",
+    "filter": {
+      "open": "مفتوحة",
+      "today": "اليوم",
+      "overdue": "متأخرة",
+      "done": "منجزة",
+      "all": "الكل"
+    }
+  },
+  "reports": {
+    "title": "التقارير",
+    "subtitle": "كيف تسير مبيعاتك ومحادثاتك.",
+    "range": "الفترة",
+    "inbound": "رسائل واردة",
+    "outbound": "ردود مُرسلة",
+    "newContacts": "عملاء جدد",
+    "newConversations": "محادثات جديدة",
+    "firstResponse": "متوسط زمن أول رد",
+    "dealsWon": "صفقات ناجحة",
+    "revenue": "الإيرادات",
+    "orders": "الطلبات",
+    "messagesChart": "الرسائل يومياً",
+    "revenueChart": "الإيرادات يومياً",
+    "contactsChart": "العملاء الجدد يومياً",
+    "pipeline": "المسار حسب المرحلة",
+    "customersByStatus": "العملاء حسب الحالة",
+    "ordersByStatus": "الطلبات حسب الحالة",
+    "conversationsByStatus": "المحادثات حسب الحالة",
+    "team": "أداء الفريق",
+    "member": "العضو",
+    "replies": "الردود",
+    "openAssigned": "محادثات مفتوحة له",
+    "tasksDone": "مهام منجزة",
+    "lastDays": "{{count}} يوم",
+    "minutes": "{{count}} دقيقة"
   }
 }

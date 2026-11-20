@@ -16,6 +16,12 @@ import AuditLog from './pages/AuditLog';
 import Billing from './pages/Billing';
 import Inbox from './pages/Inbox';
 import Channels from './pages/Channels';
+import Customers from './pages/Customers';
+import CustomerDetail from './pages/CustomerDetail';
+import Pipeline from './pages/Pipeline';
+import Orders from './pages/Orders';
+import Tasks from './pages/Tasks';
+import Reports from './pages/Reports';
 import Blocked, { SubscriptionBlocked } from './pages/Blocked';
 import PlatformBranding from './pages/platform/PlatformBranding';
 import AdminOverview from './pages/platform/AdminOverview';
@@ -75,7 +81,13 @@ export default function App() {
           <Route path="companies/:id" element={<AdminCompanyDetail />} />
           <Route path="registrations" element={<AdminRegistrations />} />
           <Route path="plans" element={<AdminPlans />} />
-          <Route path="channels" element={<AdminChannels />} />
+          <Route path="customers" element={page(can('customers.view') || can('customers.manage'), <Customers />)} />
+        <Route path="customers/:id" element={page(can('customers.view') || can('customers.manage'), <CustomerDetail />)} />
+        <Route path="pipeline" element={page(can('customers.view') || can('customers.manage'), <Pipeline />)} />
+        <Route path="orders" element={page(can('orders.view') || can('orders.manage'), <Orders />)} />
+        <Route path="tasks" element={page(true, <Tasks />)} />
+        <Route path="reports" element={page(can('reports.view') || can('reports.financial'), <Reports />)} />
+        <Route path="channels" element={<AdminChannels />} />
           <Route path="settings" element={<PlatformBranding />} />
           <Route path="account" element={<Account />} />
           <Route path="login" element={<Navigate to="/admin" replace />} />
@@ -98,6 +110,12 @@ export default function App() {
       <Route element={<Layout />}>
         <Route index element={workspace ? (blocked ? <SubscriptionBlocked /> : <Dashboard />) : <Blocked />} />
         <Route path="inbox" element={page(can('conversations.view_all') || can('conversations.view_assigned'), <Inbox />)} />
+        <Route path="customers" element={page(can('customers.view') || can('customers.manage'), <Customers />)} />
+        <Route path="customers/:id" element={page(can('customers.view') || can('customers.manage'), <CustomerDetail />)} />
+        <Route path="pipeline" element={page(can('customers.view') || can('customers.manage'), <Pipeline />)} />
+        <Route path="orders" element={page(can('orders.view') || can('orders.manage'), <Orders />)} />
+        <Route path="tasks" element={page(true, <Tasks />)} />
+        <Route path="reports" element={page(can('reports.view') || can('reports.financial'), <Reports />)} />
         <Route path="channels" element={page(can('channels.manage'), <Channels />)} />
         <Route path="team" element={page(can('users.view') || can('users.manage'), <Team />)} />
         <Route path="roles" element={page(can('roles.manage'), <Roles />)} />

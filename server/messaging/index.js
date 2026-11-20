@@ -185,7 +185,7 @@ function createMessaging({ db, config, media, providers, jobs, getRealtime = () 
       let contactCreated = false;
       if (!identity) {
         const [contact] = await trx('contacts').insert({
-          company_id: companyId, display_name: profile.name || profile.username || externalUserId,
+          company_id: companyId, display_name: profile.name || profile.username || externalUserId, source: route.provider,
           first_contact_at: createdAt, last_contact_at: createdAt
         }).returning('*');
         [identity] = await trx('contact_identities').insert({

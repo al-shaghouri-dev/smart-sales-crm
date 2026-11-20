@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { AlertTriangle, Building2, MessageSquare, Plug, ClipboardList, CreditCard, Inbox, Layers, LayoutDashboard, LogOut, Menu, Palette, Settings, ShieldCheck, UserCircle, Users, X } from 'lucide-react';
+import { AlertTriangle, BarChart3, Building2, Contact, Kanban, ListTodo, ShoppingBag, MessageSquare, Plug, ClipboardList, CreditCard, Inbox, Layers, LayoutDashboard, LogOut, Menu, Palette, Settings, ShieldCheck, UserCircle, Users, X } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { LanguageSwitcher, ThemeToggle } from './Preferences';
 import { IconButton } from './ui';
@@ -68,6 +68,11 @@ export default function Layout() {
   const workspaceItems = hasWorkspace ? [
     { to: '/', icon: LayoutDashboard, label: t('nav.dashboard'), end: true },
     can('conversations.view_all') || can('conversations.view_assigned') ? { to: '/inbox', icon: MessageSquare, label: t('nav.inbox') } : null,
+    can('customers.view') || can('customers.manage') ? { to: '/customers', icon: Contact, label: t('nav.customers') } : null,
+    can('customers.view') || can('customers.manage') ? { to: '/pipeline', icon: Kanban, label: t('nav.pipeline') } : null,
+    can('orders.view') || can('orders.manage') ? { to: '/orders', icon: ShoppingBag, label: t('nav.orders') } : null,
+    { to: '/tasks', icon: ListTodo, label: t('nav.tasks') },
+    can('reports.view') || can('reports.financial') ? { to: '/reports', icon: BarChart3, label: t('nav.reports') } : null,
     can('channels.manage') ? { to: '/channels', icon: Plug, label: t('nav.channels') } : null,
     can('users.view') || can('users.manage') ? { to: '/team', icon: Users, label: t('nav.team') } : null,
     can('roles.manage') ? { to: '/roles', icon: ShieldCheck, label: t('nav.roles') } : null,

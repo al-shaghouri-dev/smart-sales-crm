@@ -356,6 +356,7 @@ function Details({ conversation, onChanged, onClose }) {
         <strong dir="auto">{c.contact.displayName}</strong>
         {c.identity.username && <span className="muted small" dir="ltr">@{c.identity.username}</span>}
         <ProviderBadge provider={c.channel.provider} />
+        {(can('customers.view') || can('customers.manage')) && <Link to={`/customers/${c.contact.id}`} className="btn btn-secondary btn-sm">{t('inbox.openCustomer')}</Link>}
       </div>
       <dl className="details-list">
         {c.contact.phone && <><dt>{t('inbox.phone')}</dt><dd dir="ltr">{c.contact.phone}</dd></>}
