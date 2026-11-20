@@ -24,7 +24,7 @@ export default function AdminOverview() {
     { icon: CircleDollarSign, label: t('admin.stats.activeSubscriptions'), value: data.subscriptions.active, sub: t('admin.stats.trials', { count: data.subscriptions.trial }) },
     { icon: AlarmClock, label: t('admin.stats.expiringSoon'), value: data.subscriptions.expiringIn7Days, sub: t('admin.stats.expired', { count: data.subscriptions.expired }), to: '/admin/companies?subscription=expired' },
     { icon: Users, label: t('admin.stats.users'), value: data.users.total, sub: t('admin.stats.employees', { count: data.users.employees }) },
-    { icon: MessagesSquare, label: t('admin.stats.channels'), value: data.channels ?? '—', sub: data.channels === null ? t('admin.stats.channelsLater') : null }
+    { icon: MessagesSquare, label: t('admin.stats.channels'), value: data.channels ?? 0, to: '/admin/channels' }
   ];
 
   return (

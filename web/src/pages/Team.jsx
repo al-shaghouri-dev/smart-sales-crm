@@ -165,7 +165,7 @@ export default function Team() {
             <table className="table">
               <thead>
                 <tr>
-                  <th>{t('team.name')}</th><th>{t('team.role')}</th><th>{t('common.status')}</th><th>{t('team.lastLogin')}</th>
+                  <th>{t('team.name')}</th><th>{t('team.role')}</th><th>{t('common.status')}</th><th className="hide-xs">{t('team.lastLogin')}</th>
                   {manage && <th className="actions-col"><span className="sr-only">{t('common.actions')}</span></th>}
                 </tr>
               </thead>
@@ -183,7 +183,7 @@ export default function Team() {
                     </td>
                     <td>{roleLabel(t, m)}{m.jobTitle && <div className="muted small">{m.jobTitle}</div>}</td>
                     <td><Badge tone={m.status === 'active' ? 'success' : 'neutral'}>{t(`common.${m.status}`)}</Badge></td>
-                    <td className="muted small">{formatDate(m.lastLoginAt, locale) || t('common.never')}</td>
+                    <td className="muted small hide-xs">{formatDate(m.lastLoginAt, locale) || t('common.never')}</td>
                     {manage && (
                       <td className="actions-col">
                         <div className="row-actions">

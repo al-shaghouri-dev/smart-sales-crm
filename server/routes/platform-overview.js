@@ -42,8 +42,7 @@ module.exports = function overviewRoutes({ db }) {
           employees: await count(trx('company_memberships').where({ status: 'active' })),
           platformAdmins: await count(trx('users').where({ is_platform_admin: true }))
         },
-        // Messaging channels arrive in Phase 4; reported as null (not zero) until they exist.
-        channels: null,
+        channels: Number((await trx('channels').whereNot('status', 'disconnected').count('* as n').first()).n),
         recentCompanies: recent
       };
     });

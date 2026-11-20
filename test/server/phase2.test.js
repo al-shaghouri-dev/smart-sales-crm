@@ -486,7 +486,7 @@ describe('Phase 2: Super Admin, companies, subscriptions, onboarding', { skip },
       assert.deepEqual(s.mrr, { USD: 50, SAR: 100 });
       assert.equal(s.users.employees, 4);
       assert.equal(s.users.platformAdmins, 1);
-      assert.equal(s.channels, null);
+      assert.equal(s.channels, 0, 'real count of connected channels');
     });
   });
 

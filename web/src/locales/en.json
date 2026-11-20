@@ -276,8 +276,14 @@
     "setupRoles": "Review roles and permissions",
     "done": "Done",
     "open": "Open",
-    "roadmapTitle": "On the way",
-    "roadmapBody": "The unified inbox, customers, orders, subscriptions and messaging channels (WhatsApp, Instagram, Messenger, Telegram) are being rebuilt for the new platform and will appear here as they are released."
+    "openConversations": "Open conversations",
+    "unread": "Unread",
+    "channelsConnected": "Connected channels",
+    "quickTitle": "Quick actions",
+    "goInbox": "Open the inbox",
+    "manageChannels": "Manage channels",
+    "connectFirstChannel": "Connect your first channel",
+    "manageTeam": "Manage the team"
   },
   "team": {
     "title": "Team",
@@ -730,7 +736,6 @@
       "users": "Users",
       "employees": "{{count}} active memberships",
       "channels": "Connected channels",
-      "channelsLater": "Available with messaging channels",
       "mrr": "Monthly recurring revenue",
       "mrrHint": "Active paid subscriptions, normalised to one month, per currency.",
       "noRevenue": "No active paid subscriptions yet."
