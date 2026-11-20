@@ -11,6 +11,7 @@ All configuration is read in `server/config.js` (and `scripts/prepare-database.j
 |---|---|---|---|
 | `NODE_ENV` | R | `development` | Set `production` on servers: secure cookies, HSTS, strict validation (missing keys refuse to start). |
 | `PORT` | O | `3000` | HTTP listen port. |
+| `HOST` | O | all interfaces | Listen address, e.g. `127.0.0.1` when the reverse proxy is on the same host. |
 | `PROCESS_ROLE` | O | `all` | `all` \| `web` \| `worker` (see ARCHITECTURE.md › Process roles). `--role=` CLI flag overrides. |
 | `TRUST_PROXY` | C | off | Number of proxies in front (1–9, or `true` = 1). Required behind Nginx/LB for correct client IPs and rate limits. Never higher than the real count. |
 | `SHUTDOWN_TIMEOUT_MS` | O | `25000` | Time to let running jobs finish on SIGTERM. |

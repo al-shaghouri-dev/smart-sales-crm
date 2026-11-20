@@ -74,7 +74,7 @@ function createRuntime(config, options = {}) {
     if (serveWeb && listen) {
       await new Promise((resolve, reject) => {
         server.once('error', reject);
-        server.listen(options.port ?? config.port, () => { server.off('error', reject); resolve(); });
+        server.listen(options.port ?? config.port, config.host, () => { server.off('error', reject); resolve(); });
       });
     }
     state = 'running';

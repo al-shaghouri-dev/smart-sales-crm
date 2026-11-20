@@ -24,6 +24,8 @@ function loadConfig(env = process.env) {
     env: nodeEnv,
     isProd,
     port,
+    // Interface to listen on (e.g. 127.0.0.1 behind a reverse proxy on the same host). Default: all.
+    host: env.HOST || undefined,
     // Number of reverse proxies in front of the app ("true" = 1). Needed for correct client IPs
     // (rate limits, audit log). Example: browser → Vercel rewrite → host load balancer → app = 2.
     // Never set higher than the real number of proxies, or clients could spoof their IP.
