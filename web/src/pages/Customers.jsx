@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Contact, Download, Plus, Search } from 'lucide-react';
 import { useApp } from '../context/AppContext';
@@ -53,8 +53,11 @@ export default function Customers() {
   const navigate = useNavigate();
   const [status, setStatus] = useState('');
   const [tag, setTag] = useState('');
-  const [search, setSearch] = useState('');
-  const [query, setQuery] = useState('');
+  const [urlParams] = useSearchParams();
+  const urlSearch = urlParams.get('search') || '';
+  const [search, setSearch] = useState(urlSearch);
+  const [query, setQuery] = useState(urlSearch);
+  useEffect(() => { setSearch(urlSearch); setQuery(urlSearch); setPage(1); }, [urlSearch]);
   const [page, setPage] = useState(1);
   const [adding, setAdding] = useState(false);
   useEffect(() => { const h = setTimeout(() => { setQuery(search); setPage(1); }, 300); return () => clearTimeout(h); }, [search]);

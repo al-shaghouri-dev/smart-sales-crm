@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { AlertTriangle, BarChart3, Building2, Contact, Kanban, ListTodo, ShoppingBag, MessageSquare, Plug, ClipboardList, CreditCard, Inbox, Layers, LayoutDashboard, LogOut, Menu, Palette, Settings, ShieldCheck, UserCircle, Users, X } from 'lucide-react';
+import { AlertTriangle, BarChart3, Building2, Contact, Kanban, ListTodo, ShoppingBag, MessageSquare, Plug, ClipboardList, CreditCard, Inbox, Layers, LayoutDashboard, LogOut, Menu, Palette, Search, Settings, ShieldCheck, Users, X } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { LanguageSwitcher, ThemeToggle } from './Preferences';
 import { IconButton } from './ui';
@@ -56,7 +56,9 @@ export default function Layout() {
   const { t } = useTranslation();
   const { me, platform, can, signOut, switchCompany } = useApp();
   const [open, setOpen] = useState(false);
+  const [q, setQ] = useState('');
   const location = useLocation();
+  const navigate = useNavigate();
   useEffect(() => setOpen(false), [location.pathname]);
 
   const company = me.company;
@@ -96,11 +98,10 @@ export default function Layout() {
     <div className="shell">
       <aside className={`sidebar ${open ? 'open' : ''}`} aria-label={t('common.menu')}>
         <div className="sidebar-brand">
-          <BrandMark logoUrl={brandLogo} name={brandName} />
+          <BrandMark logoUrl={platform.logoUrl} name={platform.appName} />
           <div className="brand-text">
-            <strong>{brandName}</strong>
-            {company && !isPlatform && <small>{platform.appName}</small>}
-            {isPlatform && <small className="console-tag">{t('auth.adminConsole')}</small>}
+            <strong>{platform.appName}</strong>
+            <small>{isPlatform ? <span className="console-tag">{t('auth.adminConsole')}</span> : <>{t('nav.byVendor')} <span className="version-chip">v1.0</span></>}</small>
           </div>
           <IconButton label={t('common.close')} onClick={() => setOpen(false)} className="only-mobile"><X size={18} /></IconButton>
         </div>
@@ -116,19 +117,28 @@ export default function Layout() {
           ))}
         </nav>
 
-        {usable.length > 0 && (
-          <div className="workspace-switch">
-            <label htmlFor="ws-switch" className="nav-label">{t('nav.switchWorkspace')}</label>
-            <select id="ws-switch" value="" onChange={e => e.target.value && switchCompany(e.target.value)}>
-              <option value="">{company?.name || '—'}</option>
-              {usable.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
+        {company && !isPlatform && (
+          <div className="workspace-card">
+            <span className="nav-label"><Building2 size={13} aria-hidden /> {t('nav.currentCompany')}</span>
+            <span className="row"><BrandMark logoUrl={brandLogo} name={brandName} size={28} /><strong dir="auto" title={brandName}>{brandName}</strong></span>
+            {usable.length > 0 && (
+              <select aria-label={t('nav.switchWorkspace')} value="" onChange={e => e.target.value && switchCompany(e.target.value)}>
+                <option value="">{t('nav.switchWorkspace')}</option>
+                {usable.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            )}
           </div>
         )}
 
         <div className="sidebar-foot">
-          <NavLink to={isPlatform ? '/admin/account' : '/account'} className="nav-item"><UserCircle size={18} aria-hidden />{t('nav.account')}</NavLink>
-          <button type="button" className="nav-item" onClick={signOut}><LogOut size={18} aria-hidden />{t('auth.signOut')}</button>
+          <NavLink to={isPlatform ? '/admin/account' : '/account'} className="user-card" title={me.user.email}>
+            <span className="avatar" aria-hidden>{initials(me.user.name)}</span>
+            <span className="user-meta">
+              <strong dir="auto">{me.user.name}</strong>
+              <small>{isPlatform ? t('auth.superAdmin') : me.membership ? roleLabel(t, me.membership) : t('nav.account')}</small>
+            </span>
+          </NavLink>
+          <button type="button" className="nav-item signout-btn" onClick={signOut}><LogOut size={18} aria-hidden />{t('auth.signOut')}</button>
         </div>
       </aside>
       {open && <div className="scrim" onClick={() => setOpen(false)} />}
@@ -136,16 +146,15 @@ export default function Layout() {
       <div className="main">
         <header className="topbar">
           <IconButton label={t('common.menu')} onClick={() => setOpen(true)} className="only-mobile"><Menu size={20} /></IconButton>
+          {hasWorkspace && (can('customers.view') || can('customers.manage')) ? (
+            <form className="topbar-search search-box" role="search" onSubmit={e => { e.preventDefault(); navigate(`/customers?search=${encodeURIComponent(q.trim())}`); setQ(''); }}>
+              <Search size={16} aria-hidden />
+              <input type="search" value={q} onChange={e => setQ(e.target.value)} placeholder={t('nav.searchPlaceholder')} aria-label={t('common.search')} />
+            </form>
+          ) : <div className="topbar-spacer" />}
           <div className="topbar-spacer" />
           <LanguageSwitcher />
           <ThemeToggle />
-          <div className="user-chip" title={me.user.email}>
-            <span className="avatar" aria-hidden>{initials(me.user.name)}</span>
-            <span className="user-meta">
-              <strong>{me.user.name}</strong>
-              <small>{isPlatform ? t('auth.superAdmin') : me.membership ? roleLabel(t, me.membership) : ''}</small>
-            </span>
-          </div>
         </header>
         <main className={`content ${location.pathname.startsWith('/inbox') ? 'content-full' : ''}`} id="main">
           {hasWorkspace && <SubscriptionBanner />}

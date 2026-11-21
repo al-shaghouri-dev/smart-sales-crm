@@ -195,4 +195,42 @@ describe('Phase 4 CRM core', { skip }, () => {
     }
     void request;
   });
+  test('dashboard: real figures, permission-scoped blocks, tenant isolation', async () => {
+    const a = await company('Acme');
+    const b = await company('Beta');
+    const c1 = (await a.owner.call('post', '/api/customers', { displayName: 'Lina', status: 'lead' })).body.customer;
+    await a.owner.call('post', '/api/customers', { displayName: 'Sami', status: 'new' });
+    await b.owner.call('post', '/api/customers', { displayName: 'Other tenant' });
+    await a.owner.call('post', '/api/orders', { contactId: c1.id, items: [{ name: 'Item', quantity: 2, unitPrice: 50 }], shipping: 0 });
+    await a.owner.call('post', '/api/tasks', { title: 'Call Lina', contactId: c1.id, dueAt: new Date(Date.now() + 3600e3).toISOString() });
+
+    const d = await a.owner.agent.get('/api/dashboard?days=30');
+    assert.equal(d.status, 200, JSON.stringify(d.body));
+    assert.equal(d.body.labels.length, 30);
+    assert.equal(d.body.kpis.customers.value, 2, 'other tenant not counted');
+    assert.equal(d.body.kpis.conversion.value, 50, 'Lina became a customer by ordering');
+    assert.ok(d.body.kpis.sales.value >= 100, 'order total');
+    assert.equal(d.body.kpis.sales.series.reduce((x, y) => x + y, 0), d.body.kpis.sales.value);
+    assert.equal(d.body.topCustomers[0].name, 'Lina');
+    assert.deepEqual(d.body.sources, [{ source: 'manual', count: 2 }]);
+    assert.equal(d.body.tasks[0].title, 'Call Lina');
+    assert.ok(d.body.activity.some(e => e.type === 'order'));
+    assert.ok(!JSON.stringify(d.body).includes('Other tenant'));
+
+    const y = await a.owner.agent.get('/api/dashboard?days=365');
+    assert.equal(y.body.unit, 'month');
+    assert.equal(y.body.labels.length, 12);
+    assert.equal(y.body.kpis.customers.added, 2);
+
+    await h.addMember(a.companyId, 'employee', 'emp@acme.test');
+    const e = await session('emp@acme.test');
+    const ed = await e.agent.get('/api/dashboard');
+    assert.equal(ed.status, 200);
+    assert.equal(ed.body.kpis.sales, undefined, 'no revenue without reports.financial');
+    assert.equal(ed.body.topCustomers, undefined);
+    assert.equal(ed.body.kpis.conversations, undefined);
+    assert.ok(ed.body.kpis.customers, 'employees can view customers');
+    assert.ok(ed.body.activity.every(x => x.value === undefined), 'no amounts in activity');
+    assert.deepEqual(ed.body.tasks, [], 'only own tasks');
+  });
 });

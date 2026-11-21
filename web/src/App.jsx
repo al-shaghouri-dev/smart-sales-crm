@@ -81,13 +81,7 @@ export default function App() {
           <Route path="companies/:id" element={<AdminCompanyDetail />} />
           <Route path="registrations" element={<AdminRegistrations />} />
           <Route path="plans" element={<AdminPlans />} />
-          <Route path="customers" element={page(can('customers.view') || can('customers.manage'), <Customers />)} />
-        <Route path="customers/:id" element={page(can('customers.view') || can('customers.manage'), <CustomerDetail />)} />
-        <Route path="pipeline" element={page(can('customers.view') || can('customers.manage'), <Pipeline />)} />
-        <Route path="orders" element={page(can('orders.view') || can('orders.manage'), <Orders />)} />
-        <Route path="tasks" element={page(true, <Tasks />)} />
-        <Route path="reports" element={page(can('reports.view') || can('reports.financial'), <Reports />)} />
-        <Route path="channels" element={<AdminChannels />} />
+          <Route path="channels" element={<AdminChannels />} />
           <Route path="settings" element={<PlatformBranding />} />
           <Route path="account" element={<Account />} />
           <Route path="login" element={<Navigate to="/admin" replace />} />

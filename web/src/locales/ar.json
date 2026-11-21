@@ -276,7 +276,10 @@
     "pipeline": "مسار المبيعات",
     "orders": "الطلبات",
     "tasks": "المهام",
-    "reports": "التقارير"
+    "reports": "التقارير",
+    "byVendor": "من WASL Technologies",
+    "currentCompany": "الشركة الحالية",
+    "searchPlaceholder": "ابحث عن عميل بالاسم أو الهاتف أو البريد…"
   },
   "blocked": {
     "noWorkspaceTitle": "لا توجد مساحة عمل بعد",
@@ -311,12 +314,43 @@
     "manageChannels": "إدارة القنوات",
     "connectFirstChannel": "اربط أول قناة",
     "manageTeam": "إدارة الفريق",
-    "customers": "العملاء",
-    "tasksDue": "مهام اليوم",
-    "myTasks": "مهامي اليوم",
-    "noTasksToday": "لا مهام لليوم. 🎉",
     "goCustomers": "فتح العملاء",
-    "goOrders": "إنشاء طلب"
+    "goOrders": "إنشاء طلب",
+    "welcome": "مرحباً بك، {{name}}",
+    "range": {
+      "d30": "30 يوم",
+      "d90": "90 يوم",
+      "d365": "سنة"
+    },
+    "kpiConversations": "المحادثات الجديدة",
+    "kpiCustomers": "عدد العملاء",
+    "kpiSales": "إجمالي المبيعات",
+    "kpiConversion": "معدل التحويل",
+    "vsPrevious": "مقارنة بالفترة السابقة",
+    "salesChart": "أداء المبيعات",
+    "conversationsChart": "المحادثات الجديدة",
+    "customersChart": "العملاء الجدد",
+    "sources": "مصادر العملاء",
+    "customersUnit": "عميل",
+    "noCustomersYet": "لا يوجد عملاء بعد. اربط قناة أو أضف عميلاً.",
+    "upcomingTasks": "المهام القادمة",
+    "noTasks": "لا توجد مهام معلّقة.",
+    "viewAll": "عرض الكل",
+    "topCustomers": "أفضل العملاء",
+    "noSalesYet": "لا توجد مبيعات في هذه الفترة بعد.",
+    "ordersCount": "طلبات: {{count}}",
+    "recentActivity": "آخر النشاطات",
+    "noActivity": "ستظهر النشاطات هنا أثناء عملك.",
+    "activity": {
+      "customer": "عميل جديد: {{name}}",
+      "dealWon": "تم إغلاق صفقة: {{title}}",
+      "dealWonValue": "تم إغلاق صفقة {{title}} بقيمة {{value}}",
+      "dealLost": "صفقة خاسرة: {{title}}",
+      "order": "الطلب #{{number}} أصبح {{status}}",
+      "conversation": "محادثة جديدة مع {{name}}"
+    },
+    "setupChannel": "اربط أول قناة",
+    "goTasks": "فتح مهامي"
   },
   "team": {
     "title": "الفريق",

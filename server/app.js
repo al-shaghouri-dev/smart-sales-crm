@@ -93,7 +93,7 @@ function createApp(config, options = {}) {
   app.use('/uploads', express.static(config.uploadsDir, { dotfiles: 'deny', index: false, fallthrough: false }));
   app.use(loadSession(db));
   // Expired/suspended subscriptions: read-only or billing-only access to workspace APIs (never data deletion).
-  app.use(['/api/company', '/api/team', '/api/roles', '/api/audit', '/api/billing', '/api/notifications', '/api/conversations', '/api/channels', '/api/customers', '/api/deals', '/api/orders', '/api/tasks', '/api/reports'], subscriptionGuard);
+  app.use(['/api/company', '/api/team', '/api/roles', '/api/audit', '/api/billing', '/api/notifications', '/api/conversations', '/api/channels', '/api/customers', '/api/deals', '/api/orders', '/api/tasks', '/api/reports', '/api/dashboard'], subscriptionGuard);
 
   app.use('/api/public/meta', require('./routes/meta-callbacks')(deps));
   app.use('/api/public', require('./routes/platform').publicRoutes(deps));
@@ -113,6 +113,7 @@ function createApp(config, options = {}) {
   app.use('/api/orders', require('./routes/orders')(deps));
   app.use('/api/tasks', require('./routes/tasks')(deps));
   app.use('/api/reports', require('./routes/reports')(deps));
+  app.use('/api/dashboard', require('./routes/dashboard')(deps));
   app.use('/api/platform', require('./routes/platform').platformRoutes(deps));
   app.use('/api', (_req, _res, next) => next(new AppError(404, 'common.not_found', 'Not found')));
 
