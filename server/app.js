@@ -119,8 +119,13 @@ function createApp(config, options = {}) {
 
   // Built React app (production). In development Vite serves the frontend and proxies /api.
   if (fs.existsSync(WEB_DIST)) {
-    app.use(express.static(WEB_DIST, { index: false }));
-    app.get('/{*splat}', (_req, res) => res.sendFile(path.join(WEB_DIST, 'index.html')));
+    // Hashed assets can be cached for a long time; index.html must always be revalidated so a new
+    // release shows up immediately (no stale page after a deploy).
+    app.use(express.static(WEB_DIST, {
+      index: false,
+      setHeaders: (res, file) => res.set('Cache-Control', /[\\/]assets[\\/]/.test(file) ? 'public, max-age=31536000, immutable' : 'no-cache')
+    }));
+    app.get('/{*splat}', (_req, res) => { res.set('Cache-Control', 'no-cache'); res.sendFile(path.join(WEB_DIST, 'index.html')); });
   }
 
   // eslint-disable-next-line no-unused-vars
