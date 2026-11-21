@@ -49,7 +49,7 @@ export function AuthShell({ heading, subheading, children }) {
 /** kind="company": workspace sign-in · kind="platform": Super Admin console sign-in. */
 export default function Login({ kind = 'company' }) {
   const { t } = useTranslation();
-  const { platform, signIn, completeMfa, locale } = useApp();
+  const { platform, signIn, completeMfa, locale, me } = useApp();
   const [ticket, setTicket] = useState(null);
   const [code, setCode] = useState('');
   const [useRecovery, setUseRecovery] = useState(false);
@@ -105,6 +105,7 @@ export default function Login({ kind = 'company' }) {
       <form onSubmit={submit} noValidate>
         {admin && <div className="admin-pill"><ShieldCheck size={14} aria-hidden />{t('auth.adminConsole')}</div>}
         <h2>{admin ? t('auth.adminSignIn') : t('auth.signInTitle')}</h2>
+        {admin && me && me.sessionKind !== 'platform' && <div className="alert alert-info" role="status">{t('auth.switchToAdminNote', { email: me.user.email })}</div>}
         {error && <div className="alert alert-error" role="alert">{errorMessage(t, error)}</div>}
         <Field label={t('auth.email')}>
           {id => <input id={id} type="email" dir="ltr" autoComplete="username" required value={email} onChange={e => setEmail(e.target.value)} />}

@@ -266,7 +266,8 @@
     "verify": "Verify",
     "useAuthenticator": "Use the authenticator app",
     "useRecovery": "Lost your phone? Use a recovery code",
-    "backToSignIn": "Back to sign-in"
+    "backToSignIn": "Back to sign-in",
+    "switchToAdminNote": "You are signed in to a workspace as {{email}}. Signing in here opens the admin console instead."
   },
   "nav": {
     "workspace": "Workspace",

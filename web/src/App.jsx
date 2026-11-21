@@ -100,7 +100,8 @@ export default function App() {
   return (
     <Routes>
       {publicRoutes()}
-      <Route path="/admin/*" element={<Navigate to="/" replace />} />
+      {/* Signed in to a workspace but opening the admin console: show the admin sign-in (it replaces the workspace session). */}
+      <Route path="/admin/*" element={<Login kind="platform" />} />
       <Route element={<Layout />}>
         <Route index element={workspace ? (blocked ? <SubscriptionBlocked /> : <Dashboard />) : <Blocked />} />
         <Route path="inbox" element={page(can('conversations.view_all') || can('conversations.view_assigned'), <Inbox />)} />
