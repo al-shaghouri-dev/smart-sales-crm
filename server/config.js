@@ -39,6 +39,8 @@ function loadConfig(env = process.env) {
     uploadsDir: env.UPLOADS_DIR || require('path').join(__dirname, '..', 'uploads'),
     sessionTtlHours: Number(env.SESSION_TTL_HOURS || 12),
     loginRateLimit: Number(env.LOGIN_RATE_LIMIT || 10),
+    accountLoginRateLimit: Number(env.ACCOUNT_LOGIN_RATE_LIMIT || 10),
+    mfaRateLimit: Number(env.MFA_RATE_LIMIT || 20),
     // Requests per minute per client IP for /api (protects against scraping and brute force).
     apiRateLimit: int(env.API_RATE_LIMIT_PER_MINUTE, 600),
     encryptionKey: env.APP_ENCRYPTION_KEY || '',

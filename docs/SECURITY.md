@@ -32,3 +32,13 @@ backup/restore + key-rotation drill.
 4. **Encryption key custody**: keys live only in the host's environment; keep an offline copy.
 5. **Email**: without SMTP, invitation/reset links are shown once to the admin — configure SMTP for production.
 6. Consider adding 2FA for Super Admin accounts in a later phase.
+
+## Two-factor authentication and sign-in throttling (added)
+- **TOTP two-factor** (RFC 6238; Google/Microsoft Authenticator, Authy, 1Password) for every account, including the Super Admin console.
+  Secrets are encrypted with the application key ring (AES-256-GCM, bound to the user); 10 single-use recovery codes are stored as SHA-256 hashes only.
+  Sign-in with 2FA returns a single-use ticket (5 minutes, 5 attempts) — no session exists until the code is verified. Codes cannot be replayed (last accepted time step is stored).
+  Turning 2FA on signs out every other session; turning it off needs the password and a code. All events are audited.
+  Administrators without 2FA see a reminder banner.
+- **Per-account login limit** (`ACCOUNT_LOGIN_RATE_LIMIT`, default 10 failures / 15 min) in addition to the per-IP limit, so one account cannot be brute-forced from many addresses.
+- **Origin protection** (deployment kit): the site only accepts connections from Cloudflare's IP ranges, so the visitor-IP header cannot be forged by hitting the server directly. The rule is verified after each deploy and switched off automatically if the site is not reachable through Cloudflare.
+- `index.html` is always revalidated; hashed assets are cached immutably.

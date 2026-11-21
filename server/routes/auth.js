@@ -8,6 +8,7 @@ const { audit } = require('../services/audit');
 const { issueToken, findToken, consumeToken, linkFor, invalidToken } = require('../services/tokens');
 const { compose } = require('../services/mailer');
 const { summary } = require('../services/subscriptions');
+const mfa = require('../services/mfa');
 const { planFeaturesFor } = require('../middleware/plan');
 
 const brandingOut = b => b && ({
@@ -19,7 +20,8 @@ const brandingOut = b => b && ({
 async function buildMe(db, req) {
   const user = {
     id: req.user.id, email: req.user.email, name: req.user.name, phone: req.user.phone,
-    locale: req.user.locale, theme: req.user.theme, isPlatformAdmin: req.user.is_platform_admin
+    locale: req.user.locale, theme: req.user.theme, isPlatformAdmin: req.user.is_platform_admin,
+    mfaEnabled: Boolean(await db.withContext({ userId: req.user.id }, trx => trx('user_mfa').where({ user_id: req.user.id }).whereNotNull('enabled_at').first('user_id')))
   };
   if (req.isPlatformSession) {
     return { ok: true, sessionKind: 'platform', csrfToken: req.session.csrf_token, user, company: null, companyAccess: 'none', membership: null, permissions: [], companies: [], subscription: null };
@@ -80,6 +82,15 @@ module.exports = function authRoutes({ db, config, mailer }) {
     handler: (_req, res) => res.status(429).json({ ok: false, code: 'auth.rate_limited', error: 'Too many attempts, try again later' })
   });
   const loginLimiter = limiter(config.loginRateLimit);
+  // Per-account limit as well as per-IP: stops slow password guessing against one account from many IPs.
+  // Only failed attempts count, so the real owner is never locked out by their own successful sign-ins.
+  const accountLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, limit: config.accountLoginRateLimit || 10, standardHeaders: false, legacyHeaders: false,
+    skipSuccessfulRequests: true,
+    keyGenerator: req => `acct:${String(req.body?.email || '').trim().toLowerCase().slice(0, 254)}`,
+    handler: (_req, res) => res.status(429).json({ ok: false, code: 'auth.rate_limited', error: 'Too many attempts, try again later' })
+  });
+  const mfaLimiter = limiter(config.mfaRateLimit || 20);
   const recoveryLimiter = limiter(config.recoveryRateLimit || 5);
   const tokenLimiter = limiter(config.tokenRateLimit || 30);
 
@@ -98,9 +109,8 @@ module.exports = function authRoutes({ db, config, mailer }) {
     return { row, email };
   }
 
-  // ---- Workspace sign-in ----
-  router.post('/login', loginLimiter, async (req, res) => {
-    const { row, email } = await checkCredentials(req);
+  /** Password accepted (and second factor, when enabled): open a workspace session. */
+  async function finishWorkspaceLogin(req, res, row, email) {
     const companyId = await pickCompany(db, row.id);
     if (!companyId) {
       const platform = (await db.knex.raw('SELECT app_user_is_platform_admin(?) AS p', [row.id])).rows[0].p;
@@ -113,16 +123,9 @@ module.exports = function authRoutes({ db, config, mailer }) {
     });
     res.cookie(COOKIE, token, cookieOptions(config));
     res.json({ ok: true });
-  });
+  }
 
-  // ---- Super Admin console sign-in (separate, shorter session, no company context) ----
-  router.post('/platform-login', loginLimiter, async (req, res) => {
-    const { row, email } = await checkCredentials(req);
-    const platform = (await db.knex.raw('SELECT app_user_is_platform_admin(?) AS p', [row.id])).rows[0].p;
-    if (!platform) {
-      await db.withContext({}, trx => audit(trx, actor(req, row, email), { action: 'platform.login_denied', entityType: 'user', entityId: row.id }));
-      throw unauthorized('auth.invalid_credentials', 'Invalid email or password');
-    }
+  async function finishPlatformLogin(req, res, row, email) {
     const { token } = await createSession(db, config, { userId: row.id, req, kind: 'platform' });
     await db.withContext({ userId: row.id, platformAdmin: true }, async trx => {
       await trx('users').where({ id: row.id }).update({ last_login_at: trx.fn.now() });
@@ -130,6 +133,85 @@ module.exports = function authRoutes({ db, config, mailer }) {
     });
     res.cookie(COOKIE, token, cookieOptions(config, 'platform'));
     res.json({ ok: true });
+  }
+
+  /** When two-factor is on, answer with a short-lived ticket instead of a session. */
+  async function secondFactorOrFinish(req, res, row, email, kind) {
+    const ticket = await mfa.challengeIfEnabled(db, row.id, kind);
+    if (ticket) return res.json({ ok: true, mfaRequired: true, ticket });
+    return kind === 'platform' ? finishPlatformLogin(req, res, row, email) : finishWorkspaceLogin(req, res, row, email);
+  }
+
+  // ---- Workspace sign-in ----
+  router.post('/login', loginLimiter, accountLimiter, async (req, res) => {
+    const { row, email } = await checkCredentials(req);
+    if (!(await pickCompany(db, row.id))) {
+      const platform = (await db.knex.raw('SELECT app_user_is_platform_admin(?) AS p', [row.id])).rows[0].p;
+      if (platform) throw forbidden('auth.use_platform_login', 'Use the admin console sign-in');
+    }
+    await secondFactorOrFinish(req, res, row, email, 'workspace');
+  });
+
+  // ---- Super Admin console sign-in (separate, shorter session, no company context) ----
+  router.post('/platform-login', loginLimiter, accountLimiter, async (req, res) => {
+    const { row, email } = await checkCredentials(req);
+    const platform = (await db.knex.raw('SELECT app_user_is_platform_admin(?) AS p', [row.id])).rows[0].p;
+    if (!platform) {
+      await db.withContext({}, trx => audit(trx, actor(req, row, email), { action: 'platform.login_denied', entityType: 'user', entityId: row.id }));
+      throw unauthorized('auth.invalid_credentials', 'Invalid email or password');
+    }
+    await secondFactorOrFinish(req, res, row, email, 'platform');
+  });
+
+  // ---- Second step: authenticator code (or a one-time recovery code) ----
+  router.post('/login/mfa', mfaLimiter, async (req, res) => {
+    const result = await mfa.completeChallenge(db, config, req.body?.ticket, req.body?.code);
+    if (!result.ok) {
+      if (result.userId) await db.withContext({ userId: result.userId }, trx => audit(trx, { user: { id: result.userId }, ip: req.ip, get: h => req.get(h) }, { action: 'auth.mfa_failed', entityType: 'user', entityId: result.userId }));
+      throw unauthorized(result.code || 'auth.mfa_invalid', 'Invalid or expired code');
+    }
+    const user = await db.withContext({ userId: result.userId }, trx => trx('users').where({ id: result.userId }).first('id', 'email', 'status'));
+    if (!user || user.status !== 'active') throw forbidden('auth.account_disabled', 'This account is disabled');
+    const row = { id: user.id };
+    if (result.usedRecovery) await db.withContext({ userId: user.id }, trx => audit(trx, actor(req, row, user.email), { action: 'auth.mfa_recovery_used', entityType: 'user', entityId: user.id }));
+    if (result.kind === 'platform') {
+      const platform = (await db.knex.raw('SELECT app_user_is_platform_admin(?) AS p', [user.id])).rows[0].p;
+      if (!platform) throw unauthorized('auth.invalid_credentials', 'Invalid email or password');
+      return finishPlatformLogin(req, res, row, user.email);
+    }
+    return finishWorkspaceLogin(req, res, row, user.email);
+  });
+
+  // ---- Two-factor management (own account) ----
+  router.get('/mfa', requireAuth, async (req, res) => {
+    res.json(await mfa.status(db, req.user.id));
+  });
+
+  router.post('/mfa/setup', requireAuth, async (req, res) => {
+    const settings = await db.withContext({}, trx => trx('platform_settings').where({ id: 1 }).first('app_name'));
+    const out = await mfa.beginSetup(db, config, req.user, settings?.app_name || 'Smart Sales CRM');
+    res.json(out);
+  });
+
+  router.post('/mfa/enable', requireAuth, async (req, res) => {
+    const codes = await mfa.enable(db, config, req.user.id, req.body?.code);
+    await db.withContext({ userId: req.user.id }, trx => audit(trx, req, { action: 'auth.mfa_enabled', entityType: 'user', entityId: req.user.id }));
+    await db.knex('sessions').where({ user_id: req.user.id }).whereNot({ id: req.session.id }).del();
+    res.json({ ok: true, recoveryCodes: codes });
+  });
+
+  router.post('/mfa/disable', requireAuth, mfaLimiter, async (req, res) => {
+    const row = (await db.knex.raw('SELECT * FROM auth_user_for_login(?)', [req.user.email])).rows[0];
+    if (!row || !(await verifyPassword(req.body?.password, row.password_hash))) throw badRequest('auth.wrong_password', 'Current password is incorrect', { field: 'password' });
+    await mfa.disable(db, config, req.user.id, req.body?.code);
+    await db.withContext({ userId: req.user.id }, trx => audit(trx, req, { action: 'auth.mfa_disabled', entityType: 'user', entityId: req.user.id }));
+    res.json({ ok: true });
+  });
+
+  router.post('/mfa/recovery-codes', requireAuth, mfaLimiter, async (req, res) => {
+    const codes = await mfa.regenerateRecovery(db, config, req.user.id, req.body?.code);
+    await db.withContext({ userId: req.user.id }, trx => audit(trx, req, { action: 'auth.mfa_recovery_regenerated', entityType: 'user', entityId: req.user.id }));
+    res.json({ ok: true, recoveryCodes: codes });
   });
 
   router.get('/me', async (req, res) => {

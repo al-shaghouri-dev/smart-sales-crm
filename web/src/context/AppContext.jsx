@@ -95,8 +95,7 @@ export function AppProvider({ children }) {
   }, [me]);
 
   /** kind: 'company' (workspace) or 'platform' (Super Admin console). */
-  const signIn = useCallback(async (email, password, kind = 'company') => {
-    await api.post(kind === 'platform' ? '/api/auth/platform-login' : '/api/auth/login', { email, password });
+  const afterSignIn = useCallback(async () => {
     const data = await loadMe();
     const saved = readSavedLocale();
     if (data.user.locale) { saveLocale(data.user.locale); i18n.changeLanguage(data.user.locale); }
@@ -104,6 +103,18 @@ export function AppProvider({ children }) {
     if (data.user.theme) { saveTheme(data.user.theme); setThemePref(data.user.theme); }
     return data;
   }, [i18n, loadMe]);
+
+  /** Returns { mfaRequired, ticket } when the account has two-factor on; otherwise signs in. */
+  const signIn = useCallback(async (email, password, kind = 'company') => {
+    const r = await api.post(kind === 'platform' ? '/api/auth/platform-login' : '/api/auth/login', { email, password });
+    if (r.mfaRequired) return { mfaRequired: true, ticket: r.ticket };
+    return afterSignIn();
+  }, [afterSignIn]);
+
+  const completeMfa = useCallback(async (ticket, code) => {
+    await api.post('/api/auth/login/mfa', { ticket, code });
+    return afterSignIn();
+  }, [afterSignIn]);
 
   const signOut = useCallback(async () => {
     try { await api.post('/api/auth/logout'); } catch { /* already signed out */ }
@@ -119,9 +130,9 @@ export function AppProvider({ children }) {
   const can = useCallback(perm => Boolean(me?.permissions?.includes(perm)), [me]);
 
   const value = useMemo(() => ({
-    platform, setPlatform, me, ready, bootError, boot, reloadMe: loadMe, signIn, signOut, switchCompany,
+    platform, setPlatform, me, ready, bootError, boot, reloadMe: loadMe, signIn, completeMfa, signOut, switchCompany,
     can, locale: i18n.language, setLocale, themePref, setTheme
-  }), [platform, me, ready, bootError, boot, loadMe, signIn, signOut, switchCompany, can, i18n.language, setLocale, themePref, setTheme]);
+  }), [platform, me, ready, bootError, boot, loadMe, signIn, completeMfa, signOut, switchCompany, can, i18n.language, setLocale, themePref, setTheme]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }

@@ -4,6 +4,7 @@ import { useApp } from '../context/AppContext';
 import { api } from '../lib/api';
 import { errorMessage } from '../lib/i18n';
 import { Button, Card, Field, PageHeader, useToast } from '../components/ui';
+import TwoFactorCard from '../components/TwoFactor';
 
 export default function Account() {
   const { t } = useTranslation();
@@ -55,6 +56,7 @@ export default function Account() {
             <Button type="submit" variant="primary" loading={busy === 'pw'} disabled={!pw.currentPassword || pw.newPassword.length < 8}>{t('account.changePassword')}</Button>
           </form>
         </Card>
+        <TwoFactorCard />
       </div>
     </>
   );

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ShieldCheck } from 'lucide-react';
+import { KeyRound, ShieldCheck } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { Button, Field } from '../components/ui';
 import { LanguageSwitcher, ThemeToggle } from '../components/Preferences';
@@ -49,7 +49,10 @@ export function AuthShell({ heading, subheading, children }) {
 /** kind="company": workspace sign-in · kind="platform": Super Admin console sign-in. */
 export default function Login({ kind = 'company' }) {
   const { t } = useTranslation();
-  const { platform, signIn, locale } = useApp();
+  const { platform, signIn, completeMfa, locale } = useApp();
+  const [ticket, setTicket] = useState(null);
+  const [code, setCode] = useState('');
+  const [useRecovery, setUseRecovery] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
@@ -60,13 +63,45 @@ export default function Login({ kind = 'company' }) {
     e.preventDefault();
     setBusy(true);
     setError(null);
-    try { await signIn(email, password, kind); } catch (err) { setError(err); setBusy(false); }
+    try {
+      const r = await signIn(email, password, kind);
+      if (r?.mfaRequired) { setTicket(r.ticket); setPassword(''); setBusy(false); }
+    } catch (err) { setError(err); setBusy(false); }
+  }
+
+  async function submitCode(e) {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    try { await completeMfa(ticket, code); } catch (err) {
+      setError(err); setBusy(false); setCode('');
+      if (err.code === 'auth.mfa_expired') { setTicket(null); setUseRecovery(false); }
+    }
   }
 
   return (
     <AuthShell
       heading={admin ? t('auth.adminHeading') : localizedText(platform.loginHeading, locale) || t('auth.defaultHeading')}
       subheading={admin ? t('auth.adminSubheading') : localizedText(platform.loginSubheading, locale) || t('auth.defaultSubheading')}>
+      {ticket ? (
+        <form onSubmit={submitCode} noValidate>
+          <div className="admin-pill"><KeyRound size={14} aria-hidden />{t('auth.mfaStep')}</div>
+          <h2>{t('auth.mfaTitle')}</h2>
+          <p className="muted form-intro">{useRecovery ? t('auth.mfaRecoveryHelp') : t('auth.mfaHelp')}</p>
+          {error && <div className="alert alert-error" role="alert">{errorMessage(t, error)}</div>}
+          <Field label={useRecovery ? t('auth.recoveryCode') : t('auth.mfaCode')}>
+            {id => useRecovery
+              ? <input id={id} dir="ltr" autoComplete="one-time-code" autoFocus required value={code} onChange={e => setCode(e.target.value)} placeholder="xxxx-xxxx" />
+              : <input id={id} dir="ltr" inputMode="numeric" autoComplete="one-time-code" autoFocus required maxLength={6} pattern="[0-9]*" className="otp-input"
+                  value={code} onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="000000" />}
+          </Field>
+          <Button variant="primary" type="submit" loading={busy} disabled={useRecovery ? code.length < 8 : code.length !== 6} className="btn-block">{t('auth.verify')}</Button>
+          <div className="auth-links">
+            <button type="button" className="link-btn" onClick={() => { setUseRecovery(x => !x); setCode(''); setError(null); }}>{useRecovery ? t('auth.useAuthenticator') : t('auth.useRecovery')}</button>
+            <button type="button" className="link-btn" onClick={() => { setTicket(null); setCode(''); setError(null); }}>{t('auth.backToSignIn')}</button>
+          </div>
+        </form>
+      ) : (
       <form onSubmit={submit} noValidate>
         {admin && <div className="admin-pill"><ShieldCheck size={14} aria-hidden />{t('auth.adminConsole')}</div>}
         <h2>{admin ? t('auth.adminSignIn') : t('auth.signInTitle')}</h2>
@@ -83,6 +118,7 @@ export default function Login({ kind = 'company' }) {
           {!admin && platform.registrationEnabled && <span>{t('auth.noAccount')} <Link to="/register">{t('auth.registerCompany')}</Link></span>}
         </div>
       </form>
+      )}
     </AuthShell>
   );
 }

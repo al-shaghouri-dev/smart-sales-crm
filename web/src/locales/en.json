@@ -51,7 +51,12 @@
       "csrf": "Your session expired. Please reload the page.",
       "wrong_password": "Your current password is incorrect.",
       "invitation_pending": "Accept your invitation email to activate this account.",
-      "use_platform_login": "This is a platform administrator account. Sign in through the admin console."
+      "use_platform_login": "This is a platform administrator account. Sign in through the admin console.",
+      "mfa_invalid": "The code is not correct. Check the time on your phone and try again.",
+      "mfa_expired": "This sign-in attempt expired. Enter your password again.",
+      "mfa_unavailable": "Two-factor authentication isn't available on this server yet.",
+      "mfa_already_enabled": "Two-factor authentication is already on.",
+      "mfa_not_started": "Start the setup again."
     },
     "company": {
       "suspended": "This workspace is suspended.",
@@ -251,7 +256,17 @@
     "forgotPassword": "Forgot your password?",
     "noAccount": "New to the platform?",
     "registerCompany": "Register your company",
-    "superAdmin": "Super Admin"
+    "superAdmin": "Super Admin",
+    "mfaStep": "Step 2 of 2",
+    "mfaTitle": "Enter your verification code",
+    "mfaHelp": "Open your authenticator app and enter the 6-digit code for this account.",
+    "mfaRecoveryHelp": "Enter one of the recovery codes you saved when you turned on two-factor authentication. Each code works once.",
+    "recoveryCode": "Recovery code",
+    "mfaCode": "6-digit code",
+    "verify": "Verify",
+    "useAuthenticator": "Use the authenticator app",
+    "useRecovery": "Lost your phone? Use a recovery code",
+    "backToSignIn": "Back to sign-in"
   },
   "nav": {
     "workspace": "Workspace",
@@ -574,7 +589,12 @@
       "customers.exported": "Exported customers",
       "customers.deleted": "Deleted a customer",
       "orders.exported": "Exported orders",
-      "orders.deleted": "Deleted an order"
+      "orders.deleted": "Deleted an order",
+      "auth.mfa_failed": "Wrong two-factor code",
+      "auth.mfa_enabled": "Turned on two-factor authentication",
+      "auth.mfa_disabled": "Turned off two-factor authentication",
+      "auth.mfa_recovery_used": "Signed in with a recovery code",
+      "auth.mfa_recovery_regenerated": "Generated new recovery codes"
     }
   },
   "platform": {
@@ -1237,5 +1257,33 @@
     "tasksDone": "Tasks done",
     "lastDays": "{{count}} days",
     "minutes": "{{count}} min"
+  },
+  "twoFactor": {
+    "title": "Two-factor authentication",
+    "on": "On",
+    "off": "Off",
+    "intro": "Protect your account with a second step: after your password, enter a code from an authenticator app (Google Authenticator, Microsoft Authenticator, Authy…). Strongly recommended for owners and administrators.",
+    "enable": "Turn on two-factor",
+    "enabledBody": "Your account asks for an authenticator code at every sign-in. Recovery codes left: {{count}}.",
+    "newRecovery": "New recovery codes",
+    "disable": "Turn off two-factor",
+    "disableWarning": "Your account will be protected by the password only.",
+    "codeOrRecovery": "Authenticator code or recovery code",
+    "setupTitle": "Set up two-factor authentication",
+    "step1": "Install an authenticator app on your phone (for example Google Authenticator or Microsoft Authenticator).",
+    "step2": "In the app, add an account and scan this QR code:",
+    "qrAlt": "QR code for the authenticator app",
+    "manual": "Can't scan? Enter this key manually:",
+    "step3": "Enter the 6-digit code shown in the app to confirm.",
+    "confirm": "Confirm and turn on",
+    "recoveryTitle": "Save your recovery codes",
+    "recoveryHelp": "If you lose your phone, these codes are the only way into your account. Each works once. Store them somewhere safe — they won't be shown again.",
+    "recoveryFileTitle": "Smart Sales CRM — two-factor recovery codes",
+    "savedThem": "I've saved them",
+    "copy": "Copy",
+    "download": "Download",
+    "copied": "Copied",
+    "disabled": "Two-factor authentication is off",
+    "banner": "Your account has administrator rights. Turn on two-factor authentication to protect it."
   }
 }

@@ -158,6 +158,13 @@ export default function Layout() {
         </header>
         <main className={`content ${location.pathname.startsWith('/inbox') ? 'content-full' : ''}`} id="main">
           {hasWorkspace && <SubscriptionBanner />}
+          {!me.user.mfaEnabled && (isPlatform || can('users.manage') || can('roles.manage')) && !location.pathname.endsWith('/account') && (
+            <div className="banner banner-warning" role="status">
+              <ShieldCheck size={16} aria-hidden />
+              <span>{t('twoFactor.banner')}</span>
+              <Link to={isPlatform ? '/admin/account' : '/account'}>{t('twoFactor.enable')}</Link>
+            </div>
+          )}
           <Outlet />
         </main>
       </div>
